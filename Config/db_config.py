@@ -1,5 +1,5 @@
 
-# MySQL connection paramters
+# MySQL connection parameters
 db_params = {
     'host': 'xxx',
     'database': 'xxx',

@@ -6,7 +6,7 @@ this_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(this_dir)
 sys.path.append(parent_dir)
 
-from Config.db_config import *
+from Config.db_config import db_params
 
 
 def prepare_queries():
