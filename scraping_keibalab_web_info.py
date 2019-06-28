@@ -4,20 +4,21 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-from Config import params_config
-from ScrapingTools import KeibaLabScraper
+from Config import params_config, db_config
+from ScrapingTools.KeibaLabScraper import KeibaLabScraper
 
 
 def main():
     parameters = params_config.parameters
+    db_params = db_config.db_params
     driver = initialize_chrome_driver(parameters)
 
-    kls = KeibaLabScraper(driver, parameters)
+    kls = KeibaLabScraper(driver, parameters, db_params)
 
-    scraping_race_result_until_start_date(parameters)
-    scraping_future_race_info(parameters)
+    scraping_race_result_until_start_date(parameters, kls)
+    scraping_future_race_info(parameters, kls)
 
-    close_chrome_window(driver)
+    driver.quit()
 
 
 def initialize_chrome_driver(parameters):
@@ -25,14 +26,6 @@ def initialize_chrome_driver(parameters):
     driver.set_page_load_timeout(parameters['PAGE_LOAD_TIMEOUT'])
     driver.maximize_window()
     return driver
-
-
-def close_chrome_window(driver):
-    driver.quit()
-
-
-def back_chrome_window(driver):
-    driver.back()
 
 
 def get_today_datetime():
@@ -50,33 +43,32 @@ def get_latest_holiday_list(target_datetime):
             target_datetime = target_datetime + datetime.timedelta(days=-1)
 
 
-def scraping_race_result_until_start_date(parameters):
+def scraping_race_result_until_start_date(parameters, kls):
     # first process for scraping
-    target_datetime = get_today_datetime()  # type: datetime.date
+    target_datetime = get_today_datetime()
     target_datetime_list = get_latest_holiday_list(target_datetime)
 
     # scarping keibalab web info
-    print('scraping the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_list[0]))
-    print('scraping the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_list[1]))
-    # ENTER MY CODE #
+    for target_datetime_str in target_datetime_list:
+        kls.scraping_result_info_in(target_datetime_str)
+        print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
 
     # after the second time process for scraping
     while True:
-        target_datetime_str = target_datetime_list[0]  # type: str
-        target_datetime = datetime.datetime.strptime(target_datetime_str, '%Y%m%d') - datetime.timedelta(
-            days=1)  # type: datetime.date
+        target_datetime_str = target_datetime_list[0]
+        target_datetime = datetime.datetime.strptime(target_datetime_str, '%Y%m%d') - datetime.timedelta(days=1)
         target_datetime_list = get_latest_holiday_list(target_datetime)
 
         # scarping keibalab web info
-        print('scraping the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_list[0]))
-        print('scraping the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_list[1]))
-        # ENTER MY CODE #
+        for target_datetime_str in target_datetime_list:
+            kls.scraping_result_info_in(target_datetime_str)
+            print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
 
         if parameters['START_DATE'] in target_datetime_list:
             break
 
 
-def scraping_future_race_info(parameters):
+def scraping_future_race_info(parameters, kls):
     pass
 
 
