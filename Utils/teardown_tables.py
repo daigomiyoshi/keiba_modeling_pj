@@ -11,7 +11,8 @@ from Config.db_config import db_params
 
 def prepare_queries():
     return [
-        # 'TRUNCATE TABLE table_name;'
+        'TRUNCATE TABLE s_race_master;',
+        'TRUNCATE TABLE s_race_result_list;'
     ]
 
 

@@ -1,10 +1,10 @@
 
 # MySQL connection parameters
 db_params = {
-    'host': 'xxx',
-    'database': 'xxx',
-    'user': 'xxx',
-    'password': 'xxxx',
+    'host': 'keiba-dev.cqgy6lnqmj7f.us-east-1.rds.amazonaws.com',
+    'database': 'keiba_lab',
+    'user': 'daigomiyoshi',
+    'password': 'daigo1123',
     'port': 3306,
     'charset': 'utf8'
 }

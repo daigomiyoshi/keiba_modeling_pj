@@ -1,9 +1,5 @@
 import datetime
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-
 from Config import params_config, db_config
 from ScrapingTools.KeibaLabScraper import KeibaLabScraper
 
@@ -12,7 +8,6 @@ def main():
     parameters = params_config.parameters
     db_params = db_config.db_params
     driver = initialize_chrome_driver(parameters)
-
     kls = KeibaLabScraper(driver, parameters, db_params)
 
     scraping_race_result_until_start_date(parameters, kls)
@@ -48,10 +43,11 @@ def scraping_race_result_until_start_date(parameters, kls):
     target_datetime = get_today_datetime()
     target_datetime_list = get_latest_holiday_list(target_datetime)
 
-    # scarping keibalab web info
+    # scarping web info at first time
     for target_datetime_str in target_datetime_list:
         kls.scraping_result_info_in(target_datetime_str)
         print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+        break
 
     # after the second time process for scraping
     while True:
@@ -59,13 +55,14 @@ def scraping_race_result_until_start_date(parameters, kls):
         target_datetime = datetime.datetime.strptime(target_datetime_str, '%Y%m%d') - datetime.timedelta(days=1)
         target_datetime_list = get_latest_holiday_list(target_datetime)
 
-        # scarping keibalab web info
+        # scarping web info
         for target_datetime_str in target_datetime_list:
             kls.scraping_result_info_in(target_datetime_str)
             print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
 
         if parameters['START_DATE'] in target_datetime_list:
             break
+        break
 
 
 def scraping_future_race_info(parameters, kls):
