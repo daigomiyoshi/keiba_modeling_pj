@@ -1,5 +1,5 @@
-CREATE TABLE `s_race_master` (
-  `race_id` varchar(10) NOT NULL,
+CREATE TABLE `keibalab_race_master` (
+  `race_id` varchar(15) NOT NULL,
   `race_timing` varchar(50) DEFAULT NULL,
   `race_title` varchar(50) DEFAULT NULL,
   `race_weather` varchar(2) DEFAULT NULL,

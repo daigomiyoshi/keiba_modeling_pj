@@ -3,6 +3,9 @@ from selenium import webdriver
 from Config import params_config, db_config
 from ScrapingTools.KeibaLabScraper import KeibaLabScraper
 
+import warnings
+warnings.filterwarnings('ignore')
+
 
 def main():
     parameters = params_config.parameters
@@ -47,7 +50,6 @@ def scraping_race_result_until_start_date(parameters, kls):
     for target_datetime_str in target_datetime_list:
         kls.scraping_result_info_in(target_datetime_str)
         print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
-        break
 
     # after the second time process for scraping
     while True:
@@ -62,7 +64,6 @@ def scraping_race_result_until_start_date(parameters, kls):
 
         if parameters['START_DATE'] in target_datetime_list:
             break
-        break
 
 
 def scraping_future_race_info(parameters, kls):

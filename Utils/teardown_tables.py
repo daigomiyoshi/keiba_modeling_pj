@@ -11,16 +11,16 @@ from Config.db_config import db_params
 
 def prepare_queries():
     return [
-        'TRUNCATE TABLE s_race_master;',
-        'TRUNCATE TABLE s_race_result_list;'
+        'TRUNCATE TABLE keibalab_race_master;',
+        'TRUNCATE TABLE keibalab_race_result_list;'
     ]
 
 
 def teardown():
     queries = prepare_queries()
-    print(queries)
 
     for query in queries:
+        print(query)
         execute_query(query, db_params)
 
 

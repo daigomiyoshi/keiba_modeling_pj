@@ -127,14 +127,13 @@ class KeibaLabScraper(object):
             race_result_tbody_list = self._get_race_result_tbody_list(race_id)
 
             self._bulk_insert(insert_list=[race_data_box_list],
-                              target_table_name='s_race_master',
-                              insert_col_names=self.parameters['TABLE_COL_NAMES']['s_race_master'])
+                              target_table_name='keibalab_race_master',
+                              insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_master'])
             self._bulk_insert(insert_list=race_result_tbody_list,
-                              target_table_name='s_race_result_list',
-                              insert_col_names=self.parameters['TABLE_COL_NAMES']['s_race_result_list'])
+                              target_table_name='keibalab_race_result_list',
+                              insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_result_list'])
 
             # race_data_box.append(race_data_box_list)
             # race_result_table.append(race_result_tbody_list)
 
             self.driver.back()
-            break
