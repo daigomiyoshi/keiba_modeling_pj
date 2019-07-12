@@ -8,6 +8,7 @@ parameters = {
     'START_DATE': '19860105',  # sunday
     'DRIVER_DIR': "./chromedriver",
     'PAGE_LOAD_TIMEOUT': 10,
+    'RETRIES': 3,
 
     'TABLE_COL_NAMES': {
         'keibalab_race_master': ['race_id',

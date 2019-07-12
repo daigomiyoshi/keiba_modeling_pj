@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import time
 import pymysql
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -22,7 +23,6 @@ class KeibaLabScraper(object):
 
     def _load_target_url_page(self, target_datetime_str):
         target_url = self.parameters['TARGET_URL'] + target_datetime_str
-
         try:
             self.driver.get(target_url)
             print('We can load the URL:', self.driver.current_url)
@@ -118,11 +118,19 @@ class KeibaLabScraper(object):
     def scraping_result_info_in(self, target_datetime_str):
         self._load_target_url_page(target_datetime_str)
         xpath_list_of_race_result_link = self._make_xpath_list_of_race_result_link()
-        # race_data_box = []
-        # race_result_table = []
+
         for xpath_of_race_result_link in xpath_list_of_race_result_link:
             self._make_web_driver_click_by(xpath_of_race_result_link)
             race_id = self._get_race_id()
+            
+            while True:
+                if len(str(race_id)) != 12:
+                    print('failed to get the correct race_id, so retry to get the id')
+                    self._make_web_driver_click_by(xpath_of_race_result_link)
+                    race_id = self._get_race_id()
+                else:
+                    break
+
             race_data_box_list = self._get_race_data_box_list(race_id)
             race_result_tbody_list = self._get_race_result_tbody_list(race_id)
 
@@ -133,7 +141,6 @@ class KeibaLabScraper(object):
                               target_table_name='keibalab_race_result_list',
                               insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_result_list'])
 
-            # race_data_box.append(race_data_box_list)
-            # race_result_table.append(race_result_tbody_list)
-
             self.driver.back()
+            time.sleep(1)
+

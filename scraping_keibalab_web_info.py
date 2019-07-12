@@ -41,15 +41,24 @@ def get_latest_holiday_list(target_datetime):
             target_datetime = target_datetime + datetime.timedelta(days=-1)
 
 
+def try_scraping_result_info_in(kls, parameters, target_datetime_str):
+    for i in range(parameters['RETRIES']):
+        try:
+            kls.scraping_result_info_in(target_datetime_str)
+            print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+        except TimeoutException as e:
+            print('Timeout, Retrying... ({I}/{MAX})'.format(I=i, MAX=parameters['RETRIES']))
+            continue
+        else:
+            return True
+
+
 def scraping_race_result_until_start_date(parameters, kls):
-    # first process for scraping
+    # scarping web info at first time
     target_datetime = get_today_datetime()
     target_datetime_list = get_latest_holiday_list(target_datetime)
-
-    # scarping web info at first time
     for target_datetime_str in target_datetime_list:
-        kls.scraping_result_info_in(target_datetime_str)
-        print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+        try_scraping_result_info_in(kls, parameters, target_datetime_str)
 
     # after the second time process for scraping
     while True:
@@ -57,10 +66,9 @@ def scraping_race_result_until_start_date(parameters, kls):
         target_datetime = datetime.datetime.strptime(target_datetime_str, '%Y%m%d') - datetime.timedelta(days=1)
         target_datetime_list = get_latest_holiday_list(target_datetime)
 
-        # scarping web info
         for target_datetime_str in target_datetime_list:
-            kls.scraping_result_info_in(target_datetime_str)
-            print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+            # scarping web info in target day
+            try_scraping_result_info_in(kls, parameters, target_datetime_str)
 
         if parameters['START_DATE'] in target_datetime_list:
             break
