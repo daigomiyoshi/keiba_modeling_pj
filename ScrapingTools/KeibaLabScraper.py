@@ -41,6 +41,16 @@ class KeibaLabScraper(object):
         except Exception as e:
             print(e)
 
+
+    def _is_race_kakutei(self, xpath_table_of_race_result, table_tbody_idx):
+        xpath_for_kakutei_box = xpath_table_of_race_result + '/tbody/tr[{TBODY_IDX}]/td[3]'.format(TBODY_IDX=table_tbody_idx+1)
+        try:
+            self.driver.find_element_by_xpath(xpath_for_kakutei_box).find_element_by_tag_name('a')
+            return True
+        except Exception as e:
+            return False
+
+
     def _make_xpath_list_of_race_result_link(self):
         xpath_list_of_race_result_link = []
 
@@ -55,9 +65,13 @@ class KeibaLabScraper(object):
                 xpath_table_of_race_result).find_element_by_tag_name('tbody').find_elements_by_tag_name('tr')
 
             for table_tbody_idx in range(len(race_table_body_elem_list)):
-                xpath_tdoby_of_table_race_result = \
-                    xpath_table_of_race_result + '/tbody/tr[{TBODY_IDX}]/td[2]/a'.format(TBODY_IDX=table_tbody_idx + 1)
-                xpath_list_of_race_result_link.append(xpath_tdoby_of_table_race_result)
+                if self._is_race_kakutei(xpath_table_of_race_result, table_tbody_idx):
+                    xpath_tdoby_of_table_race_result = \
+                        xpath_table_of_race_result + '/tbody/tr[{TBODY_IDX}]/td[2]/a'.format(TBODY_IDX=table_tbody_idx + 1)
+                    xpath_list_of_race_result_link.append(xpath_tdoby_of_table_race_result)
+                else:
+                    print('The whole races in this day is not yet finished, thus go to next day')
+                    return None
 
         return xpath_list_of_race_result_link
 
@@ -118,6 +132,8 @@ class KeibaLabScraper(object):
     def scraping_result_info_in(self, target_datetime_str):
         self._load_target_url_page(target_datetime_str)
         xpath_list_of_race_result_link = self._make_xpath_list_of_race_result_link()
+        if xpath_list_of_race_result_link is None:
+            return None
 
         for xpath_of_race_result_link in xpath_list_of_race_result_link:
             self._make_web_driver_click_by(xpath_of_race_result_link)

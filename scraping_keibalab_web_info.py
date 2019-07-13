@@ -57,7 +57,7 @@ def scraping_race_result_until_start_date(parameters, kls):
     # scarping web info at first time
     target_datetime = get_today_datetime()
     target_datetime_list = get_latest_holiday_list(target_datetime)
-    for target_datetime_str in target_datetime_list:
+    for target_datetime_str in reversed(target_datetime_list):
         try_scraping_result_info_in(kls, parameters, target_datetime_str)
 
     # after the second time process for scraping
@@ -66,7 +66,7 @@ def scraping_race_result_until_start_date(parameters, kls):
         target_datetime = datetime.datetime.strptime(target_datetime_str, '%Y%m%d') - datetime.timedelta(days=1)
         target_datetime_list = get_latest_holiday_list(target_datetime)
 
-        for target_datetime_str in target_datetime_list:
+        for target_datetime_str in reversed(target_datetime_list):
             # scarping web info in target day
             try_scraping_result_info_in(kls, parameters, target_datetime_str)
 
