@@ -73,6 +73,9 @@ class KeibaLabScraper(object):
                     print('The whole races in this day is not yet finished, thus go to next day')
                     return None
 
+        if xpath_list_of_race_result_link is None:  # case that this day has no races
+            return None
+        
         return xpath_list_of_race_result_link
 
     def _get_race_id(self):
@@ -129,10 +132,11 @@ class KeibaLabScraper(object):
         bi = BulkInsert(self.con)
         bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
 
-    def scraping_result_info_in(self, target_datetime_str):
+    def scraping_race_info_in(self, target_datetime_str):
         self._load_target_url_page(target_datetime_str)
         xpath_list_of_race_result_link = self._make_xpath_list_of_race_result_link()
         if xpath_list_of_race_result_link is None:
+            time.sleep(1)
             return None
 
         for xpath_of_race_result_link in xpath_list_of_race_result_link:
