@@ -25,7 +25,7 @@ class KeibaLabScraper(object):
         target_url = self.parameters['TARGET_URL'] + target_datetime_str
         try:
             self.driver.get(target_url)
-            print('We can load the URL:', self.driver.current_url)
+            print('We could load the URL:', self.driver.current_url)
         except Exception as e:
             print(e)
 
@@ -36,7 +36,7 @@ class KeibaLabScraper(object):
             self.driver.find_element_by_xpath(xpath).click()
 
             if verbose:
-                print('We can load the XPATH and now locate in:', self.driver.current_url)
+                print('We could load the XPATH and now locate in:', self.driver.current_url)
 
         except Exception as e:
             print(e)

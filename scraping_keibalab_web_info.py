@@ -46,6 +46,7 @@ def try_scraping_result_info_in(kls, parameters, target_datetime_str):
         try:
             kls.scraping_result_info_in(target_datetime_str)
             print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+            print()
         except TimeoutException as e:
             print('Timeout, Retrying... ({I}/{MAX})'.format(I=i, MAX=parameters['RETRIES']))
             continue
