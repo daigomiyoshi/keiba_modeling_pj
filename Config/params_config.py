@@ -1,15 +1,12 @@
 parameters = {
     # parameters for scraping
-
-    # 'TARGET_URL': 'https://race.netkeiba.com/?pid=schedule&select=schedule&year={YEAR}',
-    # 'YEAR_RANGE': range(2002, 2019+1),
-
-    'TARGET_URL': 'https://www.keibalab.jp/db/race/',
-    'START_DATE': '19860105',  # sunday
+    'TARGET_URL_OF_KAIBALAB_RACE': 'https://www.keibalab.jp/db/race/',
+    'START_DATE': '19860105',
     'DRIVER_DIR': "./chromedriver",
     'PAGE_LOAD_TIMEOUT': 10,
     'RETRIES': 3,
 
+    # col names in database tables
     'TABLE_COL_NAMES': {
         'keibalab_race_master': ['race_id',
                                  'race_timing',
@@ -31,6 +28,27 @@ parameters = {
                                       'popularity_order',
                                       'win_odds',
                                       'trainer_name',
-                                      'href_to_the_trainer']
+                                      'href_to_the_trainer'],
+        'keibalab_race_prior_info_list': ['race_id',
+                                          'post_position',
+                                          'horse_number',
+                                          'horse_name',
+                                          'href_to_the_horse',
+                                          'jockey_name',
+                                          'trainer_name',
+                                          'horse_age',
+                                          'horse_sex',
+                                          'popularity_order',
+                                          'win_odds',
+                                          'horse_weight',
+                                          'horse_weight_increment_from_previous',
+                                          'owner_name',
+                                          'href_to_owner_name',
+                                          'breeder_name',
+                                          'jockey_finish_first_second',
+                                          'horse_number_finish_first_second',
+                                          'stallion_finish_first_second',
+                                          'conbi_finish_first_second',
+                                          'zensou_info_list']
     }
 }

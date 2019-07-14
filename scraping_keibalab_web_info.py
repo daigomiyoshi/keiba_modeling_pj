@@ -1,5 +1,7 @@
 import datetime
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+
 from Config import params_config, db_config
 from ScrapingTools.KeibaLabScraper import KeibaLabScraper
 
@@ -27,6 +29,7 @@ def initialize_chrome_driver(parameters):
 
 def get_nearest_future_holidays_list():
     target_datetime = datetime.date.today()
+    target_datetime = datetime.date(2019, 7, 15)
     if target_datetime.weekday() == 6:
         sunday_datetime_str = target_datetime.strftime("%Y%m%d")
         target_datetime_minus_1 = target_datetime + datetime.timedelta(days=-1)
@@ -79,7 +82,7 @@ def scraping_race_info_until_start_date(parameters, kls):
         target_datetime_list = get_latest_holidays_list(target_datetime)
 
         for target_datetime_str in reversed(target_datetime_list):
-            try_scraping_info_in(kls, parameters, target_datetime_str)  # scarping web info in target day
+            try_scraping_info_in(kls, parameters, target_datetime_str)
 
         if parameters['START_DATE'] in target_datetime_list:
             break
