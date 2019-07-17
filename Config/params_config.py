@@ -1,6 +1,9 @@
 parameters = {
-    # parameters for scraping
+    # parameters of scarping URL
     'TARGET_URL_OF_KAIBALAB_RACE': 'https://www.keibalab.jp/db/race/',
+    'TARGET_URL_OF_JRA_WIN5': 'http://www.jra.go.jp/dento/info/win5.html',
+
+    # parameters of selenium
     'START_DATE': '19860105',
     'DRIVER_DIR': "./chromedriver",
     'PAGE_LOAD_TIMEOUT': 10,
@@ -35,6 +38,7 @@ parameters = {
                                           'horse_name',
                                           'href_to_the_horse',
                                           'jockey_name',
+                                          'href_to_the_jockey',
                                           'trainer_name',
                                           'horse_age',
                                           'horse_sex',
@@ -43,7 +47,7 @@ parameters = {
                                           'horse_weight',
                                           'horse_weight_increment_from_previous',
                                           'owner_name',
-                                          'href_to_owner_name',
+                                          'href_to_the_owner',
                                           'breeder_name',
                                           'jockey_finish_first_second',
                                           'horse_number_finish_first_second',

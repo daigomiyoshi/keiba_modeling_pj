@@ -3,7 +3,7 @@ class BulkInsert(object):
         self.con = con
 
     def execute(self, insert_data, target_table, col_names):
-        if len(insert_data) == 0:
+        if len(insert_data) == 0 or insert_data is None:
             return None
 
         try:

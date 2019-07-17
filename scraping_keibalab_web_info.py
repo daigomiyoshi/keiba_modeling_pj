@@ -29,7 +29,7 @@ def initialize_chrome_driver(parameters):
 
 def get_nearest_future_holidays_list():
     target_datetime = datetime.date.today()
-    target_datetime = datetime.date(2019, 7, 15)
+    target_datetime = datetime.date(2019, 6, 2)
     if target_datetime.weekday() == 6:
         sunday_datetime_str = target_datetime.strftime("%Y%m%d")
         target_datetime_minus_1 = target_datetime + datetime.timedelta(days=-1)
@@ -57,24 +57,26 @@ def get_latest_holidays_list(target_datetime):
             target_datetime = target_datetime + datetime.timedelta(days=-1)
 
 
-def try_scraping_info_in(kls, parameters, target_datetime_str):
+def try_scraping_info_in(parameters, kls, target_datetime_str):
     for i in range(parameters['RETRIES']):
         try:
             kls.scraping_race_info_in(target_datetime_str)
-            print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
-            print()
-        except TimeoutException as e:
-            print('Timeout, Retrying... ({I}/{MAX})'.format(I=i, MAX=parameters['RETRIES']))
+        except TimeoutException:
+            print('Timeout, so retrying... ({TIME}/{MAX})'.format(TIME=i + 1, MAX=parameters['RETRIES']))
             continue
         else:
+            print('scraped the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+            print()
             return True
+    print('Failed to scrape the web site info in {TARGET_DATE}'.format(TARGET_DATE=target_datetime_str))
+    print()
 
 
 def scraping_race_info_until_start_date(parameters, kls):
     # scarping nearest future days web info at first time
     target_datetime_list = get_nearest_future_holidays_list()
     for target_datetime_str in reversed(target_datetime_list):
-        try_scraping_info_in(kls, parameters, target_datetime_str)
+        try_scraping_info_in(parameters, kls, target_datetime_str)
 
     # after the second time, scraping the past holidays web info
     while True:
@@ -82,7 +84,7 @@ def scraping_race_info_until_start_date(parameters, kls):
         target_datetime_list = get_latest_holidays_list(target_datetime)
 
         for target_datetime_str in reversed(target_datetime_list):
-            try_scraping_info_in(kls, parameters, target_datetime_str)
+            try_scraping_info_in(parameters, kls, target_datetime_str)
 
         if parameters['START_DATE'] in target_datetime_list:
             break
