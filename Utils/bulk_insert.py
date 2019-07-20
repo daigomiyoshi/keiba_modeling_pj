@@ -3,13 +3,16 @@ class BulkInsert(object):
         self.con = con
 
     def execute(self, insert_data, target_table, col_names):
-        if len(insert_data) == 0 or insert_data is None:
+        if type(insert_data) is 'NoneType':
+            insert_data = []
+        if len(insert_data) == 0:
             return None
 
         try:
             cursor = self.con.cursor()
             query = self._generate_query(col_names, insert_data, target_table)
             cursor.execute(query)
+            cursor.close()
             self.con.commit()
         except Exception:
             raise RuntimeError()

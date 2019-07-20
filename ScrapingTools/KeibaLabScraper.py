@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import time
+import copy
 import pymysql
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -15,7 +16,7 @@ sys.path.append(parent_dir)
 from Utils.bulk_insert import BulkInsert
 
 
-class KeibaLabScraper(object):
+class RaceInfoScraper(object):
 
     def __init__(self, driver, parameters, db_params):
         self.driver = driver
@@ -36,22 +37,20 @@ class KeibaLabScraper(object):
             print(e)
 
     def _make_web_driver_click_by(self, xpath, verbose=True):
-        for i in range(self.parameters['RETRIES']):
+        for i in range(self.parameters['RETRIES_WHEN_WEB_CLICK']):
             try:
                 WebDriverWait(self.driver, self.parameters['PAGE_LOAD_TIMEOUT']).until(
                     EC.element_to_be_clickable((By.XPATH, xpath)))
                 self.driver.find_element_by_xpath(xpath).click()
-
-                if verbose:
-                    print('We could load the XPATH and now locate in:', self.driver.current_url)
-
             except TimeoutException:
                 print('Timeout when web_driver_click, so retrying... ({TIME}/{MAX})'.
-                      format(TIME=i+1, MAX=self.parameters['RETRIES']))
+                      format(TIME=i+1, MAX=self.parameters['RETRIES_WHEN_WEB_CLICK']))
                 continue
             else:
-                return 'click_success'
-        return 'click_failed'
+                if verbose:
+                    print('We could load the XPATH and now locate in:', self.driver.current_url)
+                return None
+        raise NoSuchElementException
 
     def _is_race_kakutei(self, xpath_table_of_race_result, table_tbody_idx):
         xpath_for_kakutei_box = \
@@ -169,10 +168,7 @@ class KeibaLabScraper(object):
             xpath_to_web_newspaper = '//*[@id="dbNav"]/div/ul/li[1]/a'
             self._make_web_driver_click_by(xpath_to_web_newspaper, verbose=False)
             xpath_to_yoko_gata = '//*[@id="dbnewWrap"]/div/article/div/section/div[4]/div[1]/div[1]/ul/li[2]/a'
-            is_success = self._make_web_driver_click_by(xpath_to_yoko_gata, verbose=False)
-
-            if is_success == 'click_failed':
-                return None
+            self._make_web_driver_click_by(xpath_to_yoko_gata, verbose=False)
 
             race_info_tbody_row_elem_list = self.driver.find_elements_by_xpath('//*[@id="top"]/table/tbody/tr')
             if len(race_info_tbody_row_elem_list) == 0:
@@ -236,61 +232,102 @@ class KeibaLabScraper(object):
 
         return race_info_tbody_list
 
-    def _bulk_insert(self, insert_list, target_table_name, insert_col_names):
-        bi = BulkInsert(self.con)
-        bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
+    def _execute_query(self, query):
+        try:
+            cursor = self.con.cursor()
+            cursor.execute(query)
+            cursor.close()
+            self.con.commit()
+        except Exception as e:
+            print(e)
+
+    def _truncate_target_rows(self, race_id):
+        queries = [
+            'TRUNCATE TABLE keibalab_race_master WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
+            'TRUNCATE TABLE keibalab_race_result_list WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
+            'TRUNCATE TABLE keibalab_race_prior_info_list WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id)
+        ]
+        for query in queries:
+            print(query)
+            self._execute_query(query)
+
+    def _bulk_insert(self, race_id, insert_list, target_table_name, insert_col_names):
+        try:
+            bi = BulkInsert(self.con)
+            bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
+        except TypeError as e:
+            print(e)
+            self._truncate_target_rows(race_id)
+            raise TypeError
 
     def scraping_race_info_in(self, target_datetime_str):
-        self._load_target_url_page(target_datetime_str)
-        xpath_list_of_race_result_link = self._make_xpath_list_of_race_result_link()
+        num_of_index_when_failed = 0
+        for i in range(self.parameters['RETRIES']):
+            try:
+                self._load_target_url_page(target_datetime_str)
+                xpath_list_of_race_result_link = self._make_xpath_list_of_race_result_link()
+                if xpath_list_of_race_result_link is None:
+                    print('This this day has no races')
+                    return None
 
-        if xpath_list_of_race_result_link is None:
-            print('This this day has no races')
-            return None
+                for j in range(len(xpath_list_of_race_result_link)):
+                    num_of_index = copy.deepcopy(j)
+                    if j < num_of_index_when_failed:
+                        continue
 
-        for xpath_of_race_result_link in xpath_list_of_race_result_link:
-            is_success = self._make_web_driver_click_by(xpath_of_race_result_link[1])
-            if is_success == 'click_failed':
-                return None
+                    xpath_of_race_result_link = xpath_list_of_race_result_link[j]
+                    self._make_web_driver_click_by(xpath_of_race_result_link[1])
+                    race_id = self._get_race_id(xpath_of_race_result_link[1])
+                    if self._is_race_id_existing_in_db(race_id):
+                        print('This race id is existing in database, thus go to next race id')
+                        self._back_chrome_window_for_number_of(1)
+                        time.sleep(1)
+                        continue
 
-            race_id = self._get_race_id(xpath_of_race_result_link[1])
+                    if xpath_of_race_result_link[0] == 'kakutei':
+                        race_data_box_list = self._get_race_data_box_list(race_id)
+                        race_result_tbody_list = self._get_race_result_tbody_list(race_id)
+                        race_prior_info_tbody_list = self._get_race_prior_info_tbody_list(race_id)
 
-            if self._is_race_id_existing_in_db(race_id):
-                print('This race id is existing in database, thus go to next race id')
-                self._back_chrome_window_for_number_of(1)
-                time.sleep(1)
+                        self._bulk_insert(race_id,
+                                          race_result_tbody_list,
+                                          'keibalab_race_result_list',
+                                          self.parameters['TABLE_COL_NAMES']['keibalab_race_result_list'])
+                        self._bulk_insert(race_id,
+                                          race_prior_info_tbody_list,
+                                          'keibalab_race_prior_info_list',
+                                          self.parameters['TABLE_COL_NAMES']['keibalab_race_prior_info_list'])
+                        self._bulk_insert(race_id,
+                                          [race_data_box_list],
+                                          'keibalab_race_master',
+                                          self.parameters['TABLE_COL_NAMES']['keibalab_race_master'])
+                        self._back_chrome_window_for_number_of(3)
+                        time.sleep(1)
+
+                    elif xpath_of_race_result_link[0] == 'not_kakutei':
+                        race_data_box_list = self._get_race_data_box_list(race_id)
+                        race_prior_info_tbody_list = self._get_race_prior_info_tbody_list(race_id)
+
+                        if race_prior_info_tbody_list is None:
+                            print('This day has no prior information, thus go to the next day')
+                            break
+
+                        self._bulk_insert(race_id,
+                                          race_prior_info_tbody_list,
+                                          'keibalab_race_prior_info_list',
+                                          self.parameters['TABLE_COL_NAMES']['keibalab_race_prior_info_list'])
+                        self._bulk_insert(race_id,
+                                          [race_data_box_list],
+                                          'keibalab_race_master',
+                                          self.parameters['TABLE_COL_NAMES']['keibalab_race_master'])
+                        self._back_chrome_window_for_number_of(2)
+                        time.sleep(1)
+
+            except (NoSuchElementException, TimeoutException, IndexError, TypeError):
+                print('Timeout or Error, so retrying... ({TIME}/{MAX})'.
+                      format(TIME=i + 1, MAX=self.parameters['RETRIES']))
+                num_of_index_when_failed = num_of_index
                 continue
-
-            if xpath_of_race_result_link[0] == 'kakutei':
-                race_data_box_list = self._get_race_data_box_list(race_id)
-                race_result_tbody_list = self._get_race_result_tbody_list(race_id)
-                race_prior_info_tbody_list = self._get_race_prior_info_tbody_list(race_id)
-
-                self._bulk_insert(insert_list=race_result_tbody_list,
-                                  target_table_name='keibalab_race_result_list',
-                                  insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_result_list'])
-                self._bulk_insert(insert_list=race_prior_info_tbody_list,
-                                  target_table_name='keibalab_race_prior_info_list',
-                                  insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_prior_info_list'])
-                self._bulk_insert(insert_list=[race_data_box_list],
-                                  target_table_name='keibalab_race_master',
-                                  insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_master'])
-                self._back_chrome_window_for_number_of(3)
-                time.sleep(1)
-
-            elif xpath_of_race_result_link[0] == 'not_kakutei':
-                race_data_box_list = self._get_race_data_box_list(race_id)
-                race_prior_info_tbody_list = self._get_race_prior_info_tbody_list(race_id)
-
-                if race_prior_info_tbody_list is None:
-                    print('This day has no prior information, thus go to the next day')
-                    break
-
-                self._bulk_insert(insert_list=race_prior_info_tbody_list,
-                                  target_table_name='keibalab_race_prior_info_list',
-                                  insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_prior_info_list'])
-                self._bulk_insert(insert_list=[race_data_box_list],
-                                  target_table_name='keibalab_race_master',
-                                  insert_col_names=self.parameters['TABLE_COL_NAMES']['keibalab_race_master'])
-                self._back_chrome_window_for_number_of(2)
-                time.sleep(1)
+            else:
+                return None
+        raise TimeoutException
