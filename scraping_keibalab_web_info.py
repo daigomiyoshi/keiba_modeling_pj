@@ -4,7 +4,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, InvalidSessionIdException
 
 from Config import params_config, db_config
-from ScrapingTools.KeibaLabScraper import RaceInfoScraper
+from ScrapingTools.KeibaLabRaceInfoScraper import RaceInfoScraper
+from ScrapingTools.KeibaLabHorseInfoScraper import HorseInfoScraper
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -22,7 +23,7 @@ def main():
 
     # his = HorseInfoScraper(driver, parameters, db_params)
     # driver = initialize_chrome_driver(parameters)
-    # scraping_horse_info(driver, parameters, db_params, his)
+    # scraping_horse_info_not_acquired(driver, parameters, db_params, his)
 
     driver.quit()
 
@@ -36,6 +37,7 @@ def initialize_chrome_driver(parameters):
     return driver
 
 
+# Functions for scraping_race_info_until_start_date
 def get_nearest_future_holidays_list():
     target_datetime = datetime.date.today()
     target_datetime = datetime.date(2016, 7, 16)
@@ -44,7 +46,7 @@ def get_nearest_future_holidays_list():
         target_datetime_minus_1 = target_datetime + datetime.timedelta(days=-1)
         saturday_datetime_str = target_datetime_minus_1.strftime("%Y%m%d")
         return [saturday_datetime_str, sunday_datetime_str]
-    
+
     while True:
         if target_datetime.weekday() == 5:
             saturday_datetime_str = target_datetime.strftime("%Y%m%d")
@@ -102,6 +104,11 @@ def scraping_race_info_until_start_date(driver, parameters, db_params, ris):
 
         if parameters['START_DATE'] in target_datetime_list:
             break
+
+
+# Functions for scraping_horse_info_not_acquired
+def scraping_horse_info_not_acquired(driver, parameters, db_params, his):
+    pass
 
 
 if __name__ == '__main__':
