@@ -7,8 +7,9 @@ parameters = {
     'START_DATE': '19860105',
     'DRIVER_DIR': "./chromedriver",
     'PAGE_LOAD_TIMEOUT': 10,
-    'RETRIES': 10,
+    'RETRIES': 5,
     'RETRIES_WHEN_WEB_CLICK': 3,
+    'INITIALIZE_AND_RETRIES': 3,
 
     # col names in database tables
     'TABLE_COL_NAMES': {

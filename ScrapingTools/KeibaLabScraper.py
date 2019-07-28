@@ -3,6 +3,7 @@ import sys
 import re
 import time
 import copy
+import urllib3
 import pymysql
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -33,8 +34,9 @@ class RaceInfoScraper(object):
         try:
             self.driver.get(target_url)
             print('We could load the URL:', self.driver.current_url)
-        except Exception as e:
+        except (TimeoutException, urllib3.exceptions.MaxRetryError) as e:
             print(e)
+            self.driver.refresh()
 
     def _make_web_driver_click_by(self, xpath, verbose=True):
         for i in range(self.parameters['RETRIES_WHEN_WEB_CLICK']):
@@ -61,6 +63,13 @@ class RaceInfoScraper(object):
         except NoSuchElementException:
             return False
 
+    def _is_race_canceled(self, xpath_tdoby_of_table_race_result):
+        try:
+            self.driver.find_element_by_xpath(xpath_tdoby_of_table_race_result)
+            return False
+        except NoSuchElementException:
+            return True
+
     def _make_xpath_list_of_race_result_link(self):
         xpath_list_of_race_result_link = []
 
@@ -77,7 +86,10 @@ class RaceInfoScraper(object):
             for table_tbody_idx in range(len(race_table_body_elem_list)):
                 xpath_tdoby_of_table_race_result = \
                     xpath_table_of_race_result + '/tbody/tr[{TBODY_IDX}]/td[2]/a'.format(TBODY_IDX=table_tbody_idx + 1)
-                if self._is_race_kakutei(xpath_table_of_race_result, table_tbody_idx):
+
+                if self._is_race_canceled(xpath_tdoby_of_table_race_result):
+                    xpath_list_of_race_result_link.append(['canceled', xpath_tdoby_of_table_race_result])
+                elif self._is_race_kakutei(xpath_table_of_race_result, table_tbody_idx):
                     xpath_list_of_race_result_link.append(['kakutei', xpath_tdoby_of_table_race_result])
                 else:
                     xpath_list_of_race_result_link.append(['not_kakutei', xpath_tdoby_of_table_race_result])
@@ -276,6 +288,10 @@ class RaceInfoScraper(object):
                         continue
 
                     xpath_of_race_result_link = xpath_list_of_race_result_link[j]
+                    if xpath_of_race_result_link[0] == 'canceled':
+                        print('This race is canceled')
+                        continue
+
                     self._make_web_driver_click_by(xpath_of_race_result_link[1])
                     race_id = self._get_race_id(xpath_of_race_result_link[1])
                     if self._is_race_id_existing_in_db(race_id):
