@@ -195,9 +195,9 @@ class RaceInfoScraper(object):
             horse_name = race_info_tbody_row_elem_list[i].find_element_by_xpath('td[4]/dl/dd[1]').text
             href_to_the_horse = \
                 race_info_tbody_row_elem_list[i].find_element_by_xpath('td[4]/dl/dd[1]/a').get_attribute("href")
-            jockey_name = \
+            jockey_name = race_info_tbody_row_elem_list[i].find_element_by_xpath('td[4]/dl/dd[2]').text
+            href_to_the_jockey = \
                 race_info_tbody_row_elem_list[i].find_elements_by_xpath('td[4]/dl/dd[2]/a')[0].get_attribute("href")
-            href_to_the_jockey = race_info_tbody_row_elem_list[i].find_element_by_xpath('td[4]/dl/dd[2]').text
             trainer_name = race_info_tbody_row_elem_list[i].find_element_by_xpath('td[4]/dl/dd[3]/a').text
             sex_and_age, interval = \
                 race_info_tbody_row_elem_list[i].find_element_by_xpath('td[4]/dl/dd[3]').text.split(trainer_name)

@@ -1,3 +1,4 @@
+import time
 import datetime
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
@@ -40,7 +41,7 @@ def initialize_chrome_driver(parameters):
 # Functions for scraping_race_info_until_start_date
 def get_nearest_future_holidays_list():
     target_datetime = datetime.date.today()
-    target_datetime = datetime.date(2016, 7, 16)
+    # target_datetime = datetime.date(2015, 10, 4)
     if target_datetime.weekday() == 6:
         sunday_datetime_str = target_datetime.strftime("%Y%m%d")
         target_datetime_minus_1 = target_datetime + datetime.timedelta(days=-1)
@@ -72,10 +73,13 @@ def try_scraping_info_in(driver, parameters, db_params, ris, target_datetime_str
     for i in range(parameters['INITIALIZE_AND_RETRIES']):
         try:
             ris.scraping_race_info_in(target_datetime_str)
-        except (NoSuchElementException, TimeoutException, InvalidSessionIdException, IndexError):
+        except (NoSuchElementException, TimeoutException, InvalidSessionIdException,
+                ConnectionRefusedError, IndexError):
             print('Timeout or Error, so initializing driver and retry... ({TIME}/{MAX})'.
                   format(TIME=i + 1, MAX=parameters['INITIALIZE_AND_RETRIES']))
-            driver.quit()
+            driver.close()
+            del driver
+            time.sleep(5)
             driver = initialize_chrome_driver(parameters)
             ris = RaceInfoScraper(driver, parameters, db_params)
             continue
