@@ -41,7 +41,7 @@ def initialize_chrome_driver(parameters):
 # Functions for scraping_race_info_until_start_date
 def get_nearest_future_holidays_list():
     target_datetime = datetime.date.today()
-    # target_datetime = datetime.date(2015, 10, 4)
+    target_datetime = datetime.date(2015, 9, 20)
     if target_datetime.weekday() == 6:
         sunday_datetime_str = target_datetime.strftime("%Y%m%d")
         target_datetime_minus_1 = target_datetime + datetime.timedelta(days=-1)
