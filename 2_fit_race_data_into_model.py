@@ -18,11 +18,18 @@ def main():
     race_prior_info_df_trained = pd.DataFrame(race_prior_info_list_trained,
                                               columns=parameters['DATAFRAME_COL_NAMES']['race_prior_info_for_training'])
 
+    print('Preprocessing the train data')
     pp = Preprocessing(parameters)
     race_prior_info_df_trained = preprocess_race_prior_info_df(race_prior_info_df_trained, pp)
 
+    print('Fit the train data into the model')
+
 
 def preprocess_race_prior_info_df(df, pp):
+    df = pp.preprocess_race_timing(df)
+    df = pp.encode_race_weather(df)
+    df = pp.encode_race_condition(df)
+    df = pp.encode_fit_and_transform_href_to_the_horse(df)
     return df
 
 

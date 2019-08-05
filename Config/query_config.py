@@ -27,7 +27,7 @@ queries = {
             , B.stallion_finish_first_second
             , B.conbi_finish_first_second
             , B.zensou_info_list
-            , C.arrival_order
+            , CAST(C.arrival_order AS SIGNED) AS arrival_order
         FROM keibalab_race_master AS A
         LEFT OUTER JOIN 
             keibalab_race_prior_info_list AS B
@@ -36,6 +36,6 @@ queries = {
             keibalab_race_result_list AS C
         ON B.race_id = C.race_id
         AND B.horse_number = C.horse_number
-        WHERE C.arrival_order NOT IN ('中止', '除外', '0');
+        WHERE C.arrival_order NOT IN ('中止', '除外', '取消', '0');
         '''
 }

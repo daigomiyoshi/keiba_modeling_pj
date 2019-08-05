@@ -5,11 +5,18 @@ parameters = {
 
     # parameters for selenium
     'START_DATE': '19860105',
-    'DRIVER_DIR': "./chromedriver",
+    'DRIVER_DIR': './chromedriver',
     'PAGE_LOAD_TIMEOUT': 10,
     'RETRIES': 5,
     'RETRIES_WHEN_WEB_CLICK': 3,
     'INITIALIZE_AND_RETRIES': 3,
+
+    # parameters about model training
+    'FILE_NAME_OF_CATEGORY_ENCODERS': 'Model/files/190805/category_encoded_href_to_the_horse.pkl',
+    'HYPER_PARAMETERS': {
+        'CATEGORY_ENCODERS_FOR_HORSE': 'TargetEncoder',  # OrdinalEncoder or TargetEncoder
+        'CATEGORY_ENCODERS_HANDLE_UNKNOWN': 15
+    },
 
     # col names in database tables
     'TABLE_COL_NAMES': {
@@ -92,11 +99,14 @@ parameters = {
             'month',
             'day',
             'dow',
-            'racecourse',
+            'race_course_encoded',
             'time_in_the_racecourse',
             'what_day_in_the_racecourse',
             'race_weather_encoded',
             'race_condition_encoded'
+            'post_position',
+            'horse_number',
+            'href_to_the_horse_encoded'
             ],
         'target_col': 'arrival_order'
     }
