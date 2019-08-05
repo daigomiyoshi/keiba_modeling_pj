@@ -3,7 +3,7 @@ parameters = {
     'TARGET_URL_OF_KAIBALAB_RACE': 'https://www.keibalab.jp/db/race/',
     'TARGET_URL_OF_JRA_WIN5': 'http://www.jra.go.jp/dento/info/win5.html',
 
-    # parameters of selenium
+    # parameters for selenium
     'START_DATE': '19860105',
     'DRIVER_DIR': "./chromedriver",
     'PAGE_LOAD_TIMEOUT': 10,
@@ -56,5 +56,48 @@ parameters = {
                                           'stallion_finish_first_second',
                                           'conbi_finish_first_second',
                                           'zensou_info_list']
+    },
+    # col names in dataframe
+    'DATAFRAME_COL_NAMES': {
+        'race_prior_info_for_training': [
+            'race_id',
+            'race_timing',
+            'race_title',
+            'race_weather',
+            'race_condition',
+            'course_syokin_list',
+            'post_position',
+            'horse_number',
+            'href_to_the_horse',
+            'jockey_name',
+            'href_to_the_jockey',
+            'trainer_name',
+            'horse_age',
+            'horse_sex',
+            'popularity_order',
+            'win_odds',
+            'horse_weight',
+            'horse_weight_increment_from_previous',
+            'href_to_the_owner',
+            'breeder_name',
+            'jockey_finish_first_second',
+            'horse_number_finish_first_second',
+            'stallion_finish_first_second',
+            'conbi_finish_first_second',
+            'zensou_info_list',
+            'arrival_order'
+            ],
+        'feature_cols': [
+            'year',
+            'month',
+            'day',
+            'dow',
+            'racecourse',
+            'time_in_the_racecourse',
+            'what_day_in_the_racecourse',
+            'race_weather_encoded',
+            'race_condition_encoded'
+            ],
+        'target_col': 'arrival_order'
     }
 }
