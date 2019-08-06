@@ -2,24 +2,24 @@ queries = {
     'RACE_PRIOR_INFO_FOR_TRAINING':
         '''
         SELECT 
-        A.race_id
+            A.race_id
             , A.race_timing
             , A.race_title
             , A.race_weather
             , A.race_condition
             , A.course_syokin_list
-            , B.post_position
-            , B.horse_number
-            , B.href_to_the_horse
-            , B.jockey_name
-            , B.href_to_the_jockey
-            , B.trainer_name
-            , B.horse_age
-            , B.horse_sex
-            , B.popularity_order
-            , B.win_odds
-            , B.horse_weight
-            , B.horse_weight_increment_from_previous
+            , C.post_position
+            , C.horse_number
+            , C.href_to_the_horse
+            , C.horse_age AS horse_sex_age
+            , C.horse_weight AS horse_weight_and_increment
+            , C.horse_impost
+            , C.jockey_name
+            , C.href_to_the_jockey
+            , C.popularity_order
+            , C.win_odds
+            , C.trainer_name
+            , C.href_to_the_trainer
             , B.href_to_the_owner
             , B.breeder_name
             , B.jockey_finish_first_second

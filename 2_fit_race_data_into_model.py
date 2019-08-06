@@ -30,6 +30,12 @@ def preprocess_race_prior_info_df(df, pp):
     df = pp.encode_race_weather(df)
     df = pp.encode_race_condition(df)
     df = pp.encode_fit_and_transform_href_to_the_horse(df)
+    df = pp.preprocess_horse_sex_age(df)
+    df = pp.preprocess_horse_weight_and_increment(df)
+    df = pp.preprocess_jockey_name(df)
+    df = pp.encode_fit_and_transform_href_to_the_jockey(df)
+    df = pp.preprocess_trainer_name(df)
+    df = pp.encode_fit_and_transform_href_to_the_trainer(df)
     return df
 
 
