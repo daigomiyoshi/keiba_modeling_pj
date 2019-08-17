@@ -14,28 +14,27 @@ def main():
     db_params = db_config.db_params
     con = pymysql.connect(**db_params)
 
-    race_prior_info_list_trained = get_race_prior_info_list_for_training(queries, con)
-    race_prior_info_df_trained = pd.DataFrame(race_prior_info_list_trained,
-                                              columns=parameters['DATAFRAME_COL_NAMES']['race_prior_info_for_training'])
+    print('Extracting the train data')
+    training_race_df = get_training_race_data_frame(queries, parameters, con)
 
     print('Preprocessing the train data')
     pp = Preprocessing(parameters)
-    race_prior_info_df_trained = preprocess_race_prior_info_df(race_prior_info_df_trained, pp)
+    training_race_df_preprocessed = preprocess_result_data_based_training_race_df(training_race_df, pp)
 
     print('Fit the train data into the model')
 
 
-def preprocess_race_prior_info_df(df, pp):
-    df = pp.preprocess_race_timing(df)
-    df = pp.encode_race_weather(df)
-    df = pp.encode_race_condition(df)
-    df = pp.encode_fit_and_transform_href_to_the_horse(df)
-    df = pp.preprocess_horse_sex_age(df)
-    df = pp.preprocess_horse_weight_and_increment(df)
-    df = pp.preprocess_jockey_name(df)
-    df = pp.encode_fit_and_transform_href_to_the_jockey(df)
-    df = pp.preprocess_trainer_name(df)
-    df = pp.encode_fit_and_transform_href_to_the_trainer(df)
+def preprocess_result_data_based_training_race_df(df, pp):
+    df = pp.preprocess_race_timing(df=df)
+    df = pp.encode_race_weather(df=df)
+    df = pp.encode_race_condition(df=df)
+    df = pp.encode_fit_and_transform_href_to_the_horse(df=df)
+    df = pp.preprocess_horse_sex_age(df=df, target_cols_type='result')
+    df = pp.preprocess_horse_weight_and_increment(df=df, target_cols_type='result')
+    df = pp.preprocess_jockey_name(df=df, target_cols_type='result')
+    df = pp.encode_fit_and_transform_href_to_the_jockey(df=df)
+    df = pp.preprocess_trainer_name(df=df, target_cols_type='result')
+    df = pp.preprocess_arrival_order(df=df)
     return df
 
 
@@ -51,9 +50,12 @@ def fetchall_and_make_list_by(query, con):
         print(e)
 
 
-def get_race_prior_info_list_for_training(queries, con):
-    selected_query = queries['RACE_PRIOR_INFO_FOR_TRAINING']
-    return fetchall_and_make_list_by(selected_query, con)
+def get_training_race_data_frame(queries, parameters, con):
+    selected_query = queries['TRAINING_DATA_FROM_MASTER_PRIOR_RESULT']
+    training_race_data_list = fetchall_and_make_list_by(selected_query, con)
+    training_race_data_frame = pd.DataFrame(training_race_data_list,
+                                            columns=parameters['DATAFRAME_COL_NAMES']['training_race_data_cols'])
+    return training_race_data_frame
 
 
 if __name__ == '__main__':
