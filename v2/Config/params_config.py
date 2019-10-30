@@ -7,8 +7,6 @@ parameters = {
     },
 
     # parameters about model training
-
-    # col names in database tables
     'TABLE_COL_NAMES': {
         'race_master': [
             'race_id',
@@ -40,6 +38,22 @@ parameters = {
             'horse_weight',
             'horse_weight_increment',
             'win_odds',
+            'popularity_order'
+        ],
+        'race_result_info': [
+            'race_id',
+            'bracket_num',
+            'horse_num',
+            'arrival_time',
+            'arrival_diff',
+            'arrrival_order'
+        ],
+        'race_refund_info': [
+            'race_id',
+            'refund_type',
+            'groupby_index',
+            'bracket_num',
+            'refund_yen',
             'popularity_order'
         ]
     },

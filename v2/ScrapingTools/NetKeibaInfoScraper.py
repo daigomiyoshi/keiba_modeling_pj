@@ -31,6 +31,9 @@ class RaceInfoScraper(object):
 
         return race_id, target_url
 
+    def _make_target_url_about_race_result(self, race_id):
+        return self.parameters['URL_ABOUT_NETKEIBA']['RACE_RESULT'].format(RACE_ID=race_id)
+
     @staticmethod
     def _extract_common_info(soup, race_id):
         race_title = soup.find('div', class_='data_intro').find('h1').text.replace(u'\xa0', u' ')
@@ -117,8 +120,10 @@ class RaceInfoScraper(object):
 
     def _truncate_target_rows(self, race_id):
         queries = [
-            'TRUNCATE TABLE race_master WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
-            'TRUNCATE TABLE race_table_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id)
+            'DELETE FROM race_master WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
+            'DELETE FROM race_table_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
+            'DELETE FROM race_result_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
+            'DELETE FROM race_refund_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id)
         ]
         for query in queries:
             print(query)
@@ -128,7 +133,7 @@ class RaceInfoScraper(object):
         try:
             bi = BulkInsert(self.con)
             bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
-        except TypeError as e:
+        except RuntimeError as e:
             print(e)
             self._truncate_target_rows(race_id)
             raise TypeError
@@ -163,3 +168,232 @@ class RaceInfoScraper(object):
                                               self.parameters['TABLE_COL_NAMES']['race_table_info'])
 
                             time.sleep(1)
+
+    def _fetchall_and_make_list_by(self, query):
+        try:
+            cursor = self.con.cursor()
+            cursor.execute(query)
+            fetch_result = cursor.fetchall()
+            fetch_result_list = [item for item in fetch_result]
+            cursor.close()
+            return fetch_result_list
+        except Exception as e:
+            print(e)
+
+    def _extract_race_ids_in_master(self):
+        query = """
+            SELECT DISTINCT race_id 
+            FROM race_master
+            WHERE race_id NOT IN (SELECT DISTINCT race_id FROM race_result_info);
+        """
+        return self. _fetchall_and_make_list_by(query)
+
+    @staticmethod
+    def _extract_race_result_info(soup, race_id):
+        this_race_result_info = []
+        table_length = len(soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr'))
+
+        for row in range(1, table_length):
+            arrival_order = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[0].text
+            bracket_num = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[1].text
+            horse_num = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[2].text
+            arrival_time = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[7].text
+            arrival_diff = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[8].text
+
+            this_race_result_info.append([
+                race_id,
+                bracket_num,
+                horse_num,
+                arrival_time,
+                arrival_diff,
+                arrival_order
+            ])
+
+        return this_race_result_info
+
+    @staticmethod
+    def _extract_race_refund_info(soup, race_id):
+        empty_refund_list = []
+        refund_table_list = soup.find('dd', class_='fc').find_all('tr')
+        for i in range(len(refund_table_list)):
+            refund_table = refund_table_list[i]
+            refund_type = refund_table.find('th').text
+
+            if refund_type == '単勝':
+                empty_refund_list.append(
+                    [race_id, '単勝', 1,
+                     int(refund_table.find_all('td')[0].text),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+
+            elif refund_type == '複勝':
+                empty_refund_list.append(
+                    [race_id, '複勝', 1,
+                     int(refund_table.find_all('td')[0].text[:2]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, '複勝', 2,
+                     int(refund_table.find_all('td')[0].text[2:4]),
+                     int(refund_table.find_all('td')[1].text.split('円')[1].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[1].replace(',', ''))]
+                )
+                try:
+                    empty_refund_list.append(
+                        [race_id, '複勝', 3,
+                         int(refund_table.find_all('td')[0].text[4:6]),
+                         int(refund_table.find_all('td')[1].text.split('円')[2].replace(',', '')),
+                         int(refund_table.find_all('td')[2].text.split('人気')[2].replace(',', ''))]
+                    )
+                except ValueError:
+                    pass
+
+            elif refund_type == '枠連':
+                empty_refund_list.append(
+                    [race_id, '枠連', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[0]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))],
+                )
+                empty_refund_list.append(
+                    [race_id, '枠連', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[1]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+
+            elif refund_type == '馬連':
+                empty_refund_list.append(
+                    [race_id, '馬連', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[0]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))],
+                )
+                empty_refund_list.append(
+                    [race_id, '馬連', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[1]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+
+            elif refund_type == 'ワイド':
+                empty_refund_list.append(
+                    [race_id, 'ワイド', 1,
+                     int(refund_table.find_all('td')[0].text[:2]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, 'ワイド', 1,
+                     int(refund_table.find_all('td')[0].text[5:7]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, 'ワイド', 2,
+                     int(refund_table.find_all('td')[0].text[7:9]),
+                     int(refund_table.find_all('td')[1].text.split('円')[1].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[1].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, 'ワイド', 2,
+                     int(refund_table.find_all('td')[0].text[12:14]),
+                     int(refund_table.find_all('td')[1].text.split('円')[1].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[1])],
+                )
+                empty_refund_list.append(
+                    [race_id, 'ワイド', 3,
+                     int(refund_table.find_all('td')[0].text[14:16]),
+                     int(refund_table.find_all('td')[1].text.split('円')[2].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[2].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, 'ワイド', 3,
+                     int(refund_table.find_all('td')[0].text[19:22]),
+                     int(refund_table.find_all('td')[1].text.split('円')[2].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[2].replace(',', ''))]
+                )
+
+            elif refund_type == '馬単':
+                empty_refund_list.append(
+                    [race_id, '馬単', 1,
+                     int(refund_table.find_all('td')[0].text.split('→')[0]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, '馬単', 1,
+                     int(refund_table.find_all('td')[0].text.split('→')[1]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0])]
+                )
+
+            elif refund_type == '三連複':
+                empty_refund_list.append(
+                    [race_id, '三連複', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[0]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, '三連複', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[1]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, '三連複', 1,
+                     int(refund_table.find_all('td')[0].text.split('-')[2]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+
+            elif refund_type == '三連単':
+                empty_refund_list.append(
+                    [race_id, '三連単', 1,
+                     int(refund_table.find_all('td')[0].text.split('→')[0]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, '三連単', 1,
+                     int(refund_table.find_all('td')[0].text.split('→')[1]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+                empty_refund_list.append(
+                    [race_id, '三連単', 1,
+                     int(refund_table.find_all('td')[0].text.split('→')[2]),
+                     int(refund_table.find_all('td')[1].text.split('円')[0].replace(',', '')),
+                     int(refund_table.find_all('td')[2].text.split('人気')[0].replace(',', ''))]
+                )
+
+        return empty_refund_list
+
+    def get_race_result_info(self):
+        existing_race_ids_in_master = self._extract_race_ids_in_master()
+
+        for id_idx in range(len(existing_race_ids_in_master)):
+            race_id = existing_race_ids_in_master[id_idx][0]
+            target_url = self._make_target_url_about_race_result(race_id)
+
+            html = requests.get(target_url)
+            html.encoding = 'EUC-JP'
+            soup = BeautifulSoup(html.text, 'html.parser')
+
+            if not soup.find_all('table', attrs={'class', 'race_table_01 nk_tb_common'}):
+                print('Target URL to requests ', target_url, 'does not exist.')
+                break
+
+            print('Target URL to requests: ', target_url)
+            race_result_info_list = self._extract_race_result_info(soup, race_id)
+            race_refund_info_list = self._extract_race_refund_info(soup, race_id)
+
+            self._bulk_insert(race_id, race_result_info_list, 'race_result_info',
+                              self.parameters['TABLE_COL_NAMES']['race_result_info'])
+            self._bulk_insert(race_id, race_refund_info_list, 'race_refund_info',
+                              self.parameters['TABLE_COL_NAMES']['race_refund_info'])
+
+            time.sleep(1)
