@@ -34,6 +34,29 @@ class RaceInfoScraper(object):
     def _make_target_url_about_race_result(self, race_id):
         return self.parameters['URL_ABOUT_NETKEIBA']['RACE_RESULT'].format(RACE_ID=race_id)
 
+    def _fetchall_and_make_list_by(self, query):
+        try:
+            cursor = self.con.cursor()
+            cursor.execute(query)
+            fetch_result = cursor.fetchall()
+            fetch_result_list = [item for item in fetch_result]
+            cursor.close()
+            return fetch_result_list
+        except Exception as e:
+            print(e)
+
+    def _is_the_race_id_existing_in_master(self, race_id):
+        query = """
+            SELECT race_id 
+            FROM race_master
+            WHERE race_id = "RACE_ID;
+        """.format(RACE_ID=race_id)
+        race_id_list_in_master = self._fetchall_and_make_list_by(query)
+        if len(race_id_list_in_master) > 0:
+            return True
+        else:
+            return False
+
     @staticmethod
     def _extract_common_info(soup, race_id):
         race_title = soup.find('div', class_='data_intro').find('h1').text.replace(u'\xa0', u' ')
@@ -139,7 +162,7 @@ class RaceInfoScraper(object):
             raise TypeError
 
     def get_race_master_and_table_info(self):
-        for event_year in range(2019, 2020):
+        for event_year in range(2008, 2020):
             for event_place in range(1, 11):
                 for event_month in range(1, 11):
                     for event_time in range(1, 11):
@@ -147,10 +170,14 @@ class RaceInfoScraper(object):
                             race_master_list = []
                             race_table_info_list = []
 
-                            race_id, target_url = \
-                                self._make_race_id_and_target_url(
-                                    event_year, event_place, event_month, event_time, event_race
-                                )
+                            race_id, target_url = self._make_race_id_and_target_url(
+                                event_year, event_place, event_month, event_time, event_race
+                            )
+
+                            if self._is_the_race_id_existing_in_master(race_id):
+                                print('Info about', target_url, 'is already existing in master.')
+                                break
+
                             html = requests.get(target_url)
                             html.encoding = 'EUC-JP'
                             soup = BeautifulSoup(html.text, 'html.parser')
@@ -168,17 +195,6 @@ class RaceInfoScraper(object):
                                               self.parameters['TABLE_COL_NAMES']['race_table_info'])
 
                             time.sleep(1)
-
-    def _fetchall_and_make_list_by(self, query):
-        try:
-            cursor = self.con.cursor()
-            cursor.execute(query)
-            fetch_result = cursor.fetchall()
-            fetch_result_list = [item for item in fetch_result]
-            cursor.close()
-            return fetch_result_list
-        except Exception as e:
-            print(e)
 
     def _extract_race_ids_in_master(self):
         query = """
