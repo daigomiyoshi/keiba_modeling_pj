@@ -49,7 +49,7 @@ class RaceInfoScraper(object):
         query = """
             SELECT race_id 
             FROM race_master
-            WHERE race_id = "RACE_ID;
+            WHERE race_id = "{RACE_ID}";
         """.format(RACE_ID=race_id)
         race_id_list_in_master = self._fetchall_and_make_list_by(query)
         if len(race_id_list_in_master) > 0:
@@ -95,13 +95,19 @@ class RaceInfoScraper(object):
             sex_and_age = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[4].text
             horse_sex = int(re.sub("\\D", "", sex_and_age))
             horse_age = re.match('[0-9a-zA-Zあ-んア-ン一-鿐]', sex_and_age).group()
-            weight_penalty = float(soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[5].text)
+
+            weight_penalty = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[5].text
+            if weight_penalty != '':
+                weight_penalty = float(weight_penalty)
+            else:
+                weight_penalty = ''
+
             jockey_name = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[6].text
             href_to_jockey = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[6].find('a').attrs['href']
             owner_name = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[7].text
             href_to_owner = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[7].find('a').attrs['href']
 
-            horse_weight_info = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[3].find_all('td')[8].text
+            horse_weight_info = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[8].text
             if horse_weight_info != '':
                 horse_weight = int(re.split('\(|\)', horse_weight_info)[0])
                 horse_weight_increment = re.split('\(|\)', horse_weight_info)[1]
@@ -141,24 +147,12 @@ class RaceInfoScraper(object):
         except Exception as e:
             print(e)
 
-    def _truncate_target_rows(self, race_id):
-        queries = [
-            'DELETE FROM race_master WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
-            'DELETE FROM race_table_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
-            'DELETE FROM race_result_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id),
-            'DELETE FROM race_refund_info WHERE race_id = "{RACE_ID}";'.format(RACE_ID=race_id)
-        ]
-        for query in queries:
-            print(query)
-            self._execute_query(query)
-
-    def _bulk_insert(self, race_id, insert_list, target_table_name, insert_col_names):
+    def _bulk_insert(self, insert_list, target_table_name, insert_col_names):
         try:
             bi = BulkInsert(self.con)
             bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
         except RuntimeError as e:
             print(e)
-            self._truncate_target_rows(race_id)
             raise TypeError
 
     def get_race_master_and_table_info(self):
@@ -176,7 +170,7 @@ class RaceInfoScraper(object):
 
                             if self._is_the_race_id_existing_in_master(race_id):
                                 print('Info about', target_url, 'is already existing in master.')
-                                break
+                                continue
 
                             html = requests.get(target_url)
                             html.encoding = 'EUC-JP'
@@ -184,14 +178,14 @@ class RaceInfoScraper(object):
 
                             if not soup.find_all('table', attrs={'class', 'race_table_old nk_tb_common'}):
                                 print('Target URL to requests ', target_url, 'does not exist.')
-                                break
+                                continue
 
                             print('Target URL to requests: ', target_url)
                             race_master_list.append(self._extract_common_info(soup, race_id))
                             race_table_info_list = race_table_info_list + self._extract_race_table(soup, race_id)
-                            self._bulk_insert(race_id, race_master_list, 'race_master',
+                            self._bulk_insert(race_master_list, 'race_master',
                                               self.parameters['TABLE_COL_NAMES']['race_master'])
-                            self._bulk_insert(race_id, race_table_info_list, 'race_table_info',
+                            self._bulk_insert(race_table_info_list, 'race_table_info',
                                               self.parameters['TABLE_COL_NAMES']['race_table_info'])
 
                             time.sleep(1)
@@ -401,15 +395,15 @@ class RaceInfoScraper(object):
 
             if not soup.find_all('table', attrs={'class', 'race_table_01 nk_tb_common'}):
                 print('Target URL to requests ', target_url, 'does not exist.')
-                break
+                continue
 
             print('Target URL to requests: ', target_url)
             race_result_info_list = self._extract_race_result_info(soup, race_id)
             race_refund_info_list = self._extract_race_refund_info(soup, race_id)
 
-            self._bulk_insert(race_id, race_result_info_list, 'race_result_info',
+            self._bulk_insert(race_result_info_list, 'race_result_info',
                               self.parameters['TABLE_COL_NAMES']['race_result_info'])
-            self._bulk_insert(race_id, race_refund_info_list, 'race_refund_info',
+            self._bulk_insert(race_refund_info_list, 'race_refund_info',
                               self.parameters['TABLE_COL_NAMES']['race_refund_info'])
 
             time.sleep(1)

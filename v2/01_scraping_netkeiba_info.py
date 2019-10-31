@@ -11,7 +11,7 @@ def main():
 
     ris = RaceInfoScraper(parameters, db_params)
     print('Scrape race master and prior table info')
-    # ris.get_race_master_and_table_info()
+    ris.get_race_master_and_table_info()
 
     print('Scrape race result info')
     ris.get_race_result_info()
