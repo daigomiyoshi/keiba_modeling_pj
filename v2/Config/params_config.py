@@ -28,6 +28,7 @@ parameters = {
             'bracket_num',
             'horse_num',
             'horse_name',
+            'href_to_horse',
             'horse_age',
             'horse_sex',
             'weight_penalty',
@@ -55,6 +56,16 @@ parameters = {
             'bracket_num',
             'refund_yen',
             'popularity_order'
+        ],
+        'race_past_5_result_info': [
+            'race_id',
+            'bracket_num',
+            'horse_num',
+            'past_1_order',
+            'past_2_order',
+            'past_3_order',
+            'past_4_order',
+            'past_5_order'
         ]
     },
 

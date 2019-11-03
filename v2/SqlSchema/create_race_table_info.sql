@@ -3,6 +3,7 @@ CREATE TABLE `race_table_info` (
   `bracket_num` int(11) NOT NULL,
   `horse_num` int(11) NOT NULL,
   `horse_name` varchar(50) DEFAULT NULL,
+  `href_to_horse` varchar(50) DEFAULT NULL,
   `horse_age` int(11) DEFAULT NULL,
   `horse_sex` varchar(5) DEFAULT NULL,
   `weight_penalty` varchar(10) DEFAULT NULL,

@@ -87,27 +87,29 @@ class RaceInfoScraper(object):
     @staticmethod
     def _extract_race_table(soup, race_id):
         this_race_table_info = []
-        table_length = len(soup.find('table', class_='race_table_old nk_tb_common').find_all('tr'))
+        table_element = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')
+        table_length = len(table_element)
         for row in range(3, table_length):
-            bracket_num = int(soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[0].text)
-            horse_num = int(soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[1].text)
-            horse_name = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[3].find('a').text
-            sex_and_age = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[4].text
+            bracket_num = int(table_element[row].find_all('td')[0].text)
+            horse_num = int(table_element[row].find_all('td')[1].text)
+            horse_name = table_element[row].find_all('td')[3].find('a').text
+            href_to_horse = table_element[row].find_all('td')[3].find('a').attrs['href']
+            sex_and_age = table_element[row].find_all('td')[4].text
             horse_sex = int(re.sub("\\D", "", sex_and_age))
             horse_age = re.match('[0-9a-zA-Zあ-んア-ン一-鿐]', sex_and_age).group()
 
-            weight_penalty = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[5].text
+            weight_penalty = table_element[row].find_all('td')[5].text
             if weight_penalty != '':
                 weight_penalty = float(weight_penalty)
             else:
                 weight_penalty = ''
 
-            jockey_name = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[6].text
-            href_to_jockey = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[6].find('a').attrs['href']
-            owner_name = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[7].text
-            href_to_owner = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[7].find('a').attrs['href']
+            jockey_name = table_element[row].find_all('td')[6].text
+            href_to_jockey = table_element[row].find_all('td')[6].find('a').attrs['href']
+            owner_name = table_element[row].find_all('td')[7].text
+            href_to_owner = table_element[row].find_all('td')[7].find('a').attrs['href']
 
-            horse_weight_info = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[8].text
+            horse_weight_info = table_element[row].find_all('td')[8].text
             if horse_weight_info != '':
                 horse_weight = int(re.split('\(|\)', horse_weight_info)[0])
                 horse_weight_increment = re.split('\(|\)', horse_weight_info)[1]
@@ -115,14 +117,15 @@ class RaceInfoScraper(object):
                 horse_weight = ''
                 horse_weight_increment = ''
 
-            win_odds = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[9].text
-            popularity_order = soup.find('table', class_='race_table_old nk_tb_common').find_all('tr')[row].find_all('td')[10].text
+            win_odds = table_element[row].find_all('td')[9].text
+            popularity_order = table_element[row].find_all('td')[10].text
 
             this_race_table_info.append([
                 race_id,
                 bracket_num,
                 horse_num,
                 horse_name,
+                href_to_horse,
                 horse_sex,
                 horse_age,
                 weight_penalty,
@@ -181,12 +184,15 @@ class RaceInfoScraper(object):
                                 continue
 
                             print('Target URL to requests: ', target_url)
-                            race_master_list.append(self._extract_common_info(soup, race_id))
-                            race_table_info_list = race_table_info_list + self._extract_race_table(soup, race_id)
-                            self._bulk_insert(race_master_list, 'race_master',
-                                              self.parameters['TABLE_COL_NAMES']['race_master'])
-                            self._bulk_insert(race_table_info_list, 'race_table_info',
-                                              self.parameters['TABLE_COL_NAMES']['race_table_info'])
+                            try:
+                                race_master_list.append(self._extract_common_info(soup, race_id))
+                                race_table_info_list = race_table_info_list + self._extract_race_table(soup, race_id)
+                                self._bulk_insert(race_master_list, 'race_master',
+                                                  self.parameters['TABLE_COL_NAMES']['race_master'])
+                                self._bulk_insert(race_table_info_list, 'race_table_info',
+                                                  self.parameters['TABLE_COL_NAMES']['race_table_info'])
+                            except (AttributeError, ValueError):
+                                print('\t This URL has no common info')
 
                             time.sleep(1)
 
@@ -201,14 +207,15 @@ class RaceInfoScraper(object):
     @staticmethod
     def _extract_race_result_info(soup, race_id):
         this_race_result_info = []
-        table_length = len(soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr'))
+        table_element = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')
+        table_length = len(table_element)
 
         for row in range(1, table_length):
-            arrival_order = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[0].text
-            bracket_num = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[1].text
-            horse_num = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[2].text
-            arrival_time = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[7].text
-            arrival_diff = soup.find('table', class_='race_table_01 nk_tb_common').find_all('tr')[row].find_all('td')[8].text
+            arrival_order = table_element[row].find_all('td')[0].text
+            bracket_num = table_element[row].find_all('td')[1].text
+            horse_num = table_element[row].find_all('td')[2].text
+            arrival_time = table_element[row].find_all('td')[7].text
+            arrival_diff = table_element[row].find_all('td')[8].text
 
             this_race_result_info.append([
                 race_id,
@@ -405,5 +412,51 @@ class RaceInfoScraper(object):
                               self.parameters['TABLE_COL_NAMES']['race_result_info'])
             self._bulk_insert(race_refund_info_list, 'race_refund_info',
                               self.parameters['TABLE_COL_NAMES']['race_refund_info'])
+
+            time.sleep(1)
+
+    def _make_target_url_about_past_5_race_result(self, race_id):
+        return self.parameters['URL_ABOUT_NETKEIBA']['RACE_PAST5_RESULT'].format(RACE_ID=race_id)
+
+    @staticmethod
+    def _extract_past_5_race_result(soup, race_id):
+        this_race_past5_result_info = []
+        table_element = soup.find('table', class_='race_table_01 nk_tb_common shutuba_table').find_all('tr')
+        table_length = len(table_element)
+
+        for row in range(1, table_length):
+            bracket_num = table_element[row].find_all('td')[0].text
+            horse_num = table_element[row].find_all('td')[1].text
+
+            order_list = []
+            for col in range(6, 11):
+                try:
+                    order = table_element[row].find_all('td')[col].find('span', class_='order').text
+                except AttributeError:
+                    order = ''
+                order_list += [order]
+
+            this_race_past5_result_info.append([race_id, bracket_num, horse_num] + order_list)
+        return this_race_past5_result_info
+
+    def get_past_5_race_result_info(self):
+        existing_race_ids_in_master = self._extract_race_ids_in_master()
+
+        for id_idx in range(len(existing_race_ids_in_master)):
+            race_id = existing_race_ids_in_master[id_idx][0]
+            target_url = self._make_target_url_about_race_result(race_id)
+
+            html = requests.get(target_url)
+            html.encoding = 'EUC-JP'
+            soup = BeautifulSoup(html.text, 'html.parser')
+
+            if not soup.find_all('table', attrs={'class', 'race_table_01 nk_tb_common shutuba_table'}):
+                print('Target URL to requests ', target_url, 'does not exist.')
+                break
+
+            print('Target URL to requests: ', target_url)
+            race_past5_result_info_list = self._extract_past_5_race_result(soup, race_id)
+            self._bulk_insert(race_past5_result_info_list, 'race_past_5_result_info',
+                              self.parameters['TABLE_COL_NAMES']['race_past_5_result_info'])
 
             time.sleep(1)

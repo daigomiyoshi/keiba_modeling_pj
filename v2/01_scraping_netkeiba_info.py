@@ -16,6 +16,9 @@ def main():
     print('Scrape race result info')
     ris.get_race_result_info()
 
+    print('Scrape past 5 race result info')
+    ris.get_past_5_race_result_info()
+
     print('Finish scraping.')
 
 
