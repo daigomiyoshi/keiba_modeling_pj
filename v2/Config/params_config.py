@@ -3,7 +3,8 @@ parameters = {
     # parameters about scraping
     'URL_ABOUT_NETKEIBA': {
         'RACE_TABLE': 'https://race.netkeiba.com/?pid=race_old&id=c',
-        'RACE_RESULT': 'https://race.netkeiba.com/?pid=race&id=c{RACE_ID}&mode=result'
+        'RACE_RESULT': 'https://race.netkeiba.com/?pid=race&id=c{RACE_ID}&mode=result',
+        'RACE_PAST5_RESULT': 'https://race.netkeiba.com/?pid=race&id=c{RACE_ID}&mode=shutuba'
     },
 
     # parameters about model training
@@ -47,7 +48,7 @@ parameters = {
             'horse_num',
             'arrival_time',
             'arrival_diff',
-            'arrrival_order'
+            'arrival_order'
         ],
         'race_refund_info': [
             'race_id',
@@ -61,11 +62,10 @@ parameters = {
             'race_id',
             'bracket_num',
             'horse_num',
-            'past_1_order',
-            'past_2_order',
-            'past_3_order',
-            'past_4_order',
-            'past_5_order'
+            'past_x',
+            'past_x_race_title',
+            'past_x_race_id',
+            'arrival_order'
         ]
     },
 

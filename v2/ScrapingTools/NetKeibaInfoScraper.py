@@ -19,6 +19,27 @@ class RaceInfoScraper(object):
         self.parameters = parameters
         self.con = pymysql.connect(**db_params)
 
+    # Common functions
+    def _fetchall_and_make_list_by(self, query):
+        try:
+            cursor = self.con.cursor()
+            cursor.execute(query)
+            fetch_result = cursor.fetchall()
+            fetch_result_list = [item for item in fetch_result]
+            cursor.close()
+            return fetch_result_list
+        except Exception as e:
+            print(e)
+
+    def _bulk_insert(self, insert_list, target_table_name, insert_col_names):
+        try:
+            bi = BulkInsert(self.con)
+            bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
+        except RuntimeError as e:
+            print(e)
+            raise TypeError
+
+    # Functions for scraping race master info
     @staticmethod
     def _get_num_str(num):
         num_str = str(num) if num >= 10 else '0' + str(num)
@@ -30,20 +51,6 @@ class RaceInfoScraper(object):
         target_url = self.parameters['URL_ABOUT_NETKEIBA']['RACE_TABLE'] + race_id
 
         return race_id, target_url
-
-    def _make_target_url_about_race_result(self, race_id):
-        return self.parameters['URL_ABOUT_NETKEIBA']['RACE_RESULT'].format(RACE_ID=race_id)
-
-    def _fetchall_and_make_list_by(self, query):
-        try:
-            cursor = self.con.cursor()
-            cursor.execute(query)
-            fetch_result = cursor.fetchall()
-            fetch_result_list = [item for item in fetch_result]
-            cursor.close()
-            return fetch_result_list
-        except Exception as e:
-            print(e)
 
     def _is_the_race_id_existing_in_master(self, race_id):
         query = """
@@ -141,23 +148,6 @@ class RaceInfoScraper(object):
 
         return this_race_table_info
 
-    def _execute_query(self, query):
-        try:
-            cursor = self.con.cursor()
-            cursor.execute(query)
-            cursor.close()
-            self.con.commit()
-        except Exception as e:
-            print(e)
-
-    def _bulk_insert(self, insert_list, target_table_name, insert_col_names):
-        try:
-            bi = BulkInsert(self.con)
-            bi.execute(insert_data=insert_list, target_table=target_table_name, col_names=insert_col_names)
-        except RuntimeError as e:
-            print(e)
-            raise TypeError
-
     def get_race_master_and_table_info(self):
         for event_year in range(2008, 2020):
             for event_place in range(1, 11):
@@ -172,7 +162,7 @@ class RaceInfoScraper(object):
                             )
 
                             if self._is_the_race_id_existing_in_master(race_id):
-                                print('Info about', target_url, 'is already existing in master.')
+                                print('Info about', target_url, 'is already existing in master')
                                 continue
 
                             html = requests.get(target_url)
@@ -180,7 +170,7 @@ class RaceInfoScraper(object):
                             soup = BeautifulSoup(html.text, 'html.parser')
 
                             if not soup.find_all('table', attrs={'class', 'race_table_old nk_tb_common'}):
-                                print('Target URL to requests ', target_url, 'does not exist.')
+                                print('Target URL to requests ', target_url, 'does not exist')
                                 continue
 
                             print('Target URL to requests: ', target_url)
@@ -196,13 +186,17 @@ class RaceInfoScraper(object):
 
                             time.sleep(1)
 
-    def _extract_race_ids_in_master(self):
+    # Functions for scraping race result and refund info
+    def _extract_race_ids_in_master_not_exist_in_race_result(self):
         query = """
             SELECT DISTINCT race_id 
             FROM race_master
             WHERE race_id NOT IN (SELECT DISTINCT race_id FROM race_result_info);
         """
         return self. _fetchall_and_make_list_by(query)
+
+    def _make_target_url_about_race_result(self, race_id):
+        return self.parameters['URL_ABOUT_NETKEIBA']['RACE_RESULT'].format(RACE_ID=race_id)
 
     @staticmethod
     def _extract_race_result_info(soup, race_id):
@@ -390,7 +384,7 @@ class RaceInfoScraper(object):
         return empty_refund_list
 
     def get_race_result_info(self):
-        existing_race_ids_in_master = self._extract_race_ids_in_master()
+        existing_race_ids_in_master = self._extract_race_ids_in_master_not_exist_in_race_result()
 
         for id_idx in range(len(existing_race_ids_in_master)):
             race_id = existing_race_ids_in_master[id_idx][0]
@@ -401,7 +395,7 @@ class RaceInfoScraper(object):
             soup = BeautifulSoup(html.text, 'html.parser')
 
             if not soup.find_all('table', attrs={'class', 'race_table_01 nk_tb_common'}):
-                print('Target URL to requests ', target_url, 'does not exist.')
+                print('Target URL to requests ', target_url, 'does not exist')
                 continue
 
             print('Target URL to requests: ', target_url)
@@ -414,6 +408,15 @@ class RaceInfoScraper(object):
                               self.parameters['TABLE_COL_NAMES']['race_refund_info'])
 
             time.sleep(1)
+
+    # Functions for scraping race past 5 result
+    def _extract_race_ids_in_master_not_exist_in_race_past_5_result(self):
+        query = """
+            SELECT DISTINCT race_id 
+            FROM race_master
+            WHERE race_id NOT IN (SELECT DISTINCT race_id FROM race_past_5_result_info);
+        """
+        return self._fetchall_and_make_list_by(query)
 
     def _make_target_url_about_past_5_race_result(self, race_id):
         return self.parameters['URL_ABOUT_NETKEIBA']['RACE_PAST5_RESULT'].format(RACE_ID=race_id)
@@ -428,30 +431,34 @@ class RaceInfoScraper(object):
             bracket_num = table_element[row].find_all('td')[0].text
             horse_num = table_element[row].find_all('td')[1].text
 
-            order_list = []
-            for col in range(6, 11):
+            post_x = 0
+            for col in range(1, 11):
                 try:
+                    race_name_element = table_element[row].find_all('td')[col].find('span', class_='race_name')
+                    past_x_race_title = race_name_element.text
+                    past_x_race_id = int(re.sub('\\D', '', race_name_element.find('a').attrs['href']))
                     order = table_element[row].find_all('td')[col].find('span', class_='order').text
-                except AttributeError:
-                    order = ''
-                order_list += [order]
+                    post_x += 1
+                    this_race_past5_result_info.append(
+                        [race_id, bracket_num, horse_num, post_x, past_x_race_title, past_x_race_id, order])
+                except (IndexError, AttributeError):
+                    pass
 
-            this_race_past5_result_info.append([race_id, bracket_num, horse_num] + order_list)
         return this_race_past5_result_info
 
     def get_past_5_race_result_info(self):
-        existing_race_ids_in_master = self._extract_race_ids_in_master()
+        existing_race_ids_in_master = self._extract_race_ids_in_master_not_exist_in_race_past_5_result()
 
         for id_idx in range(len(existing_race_ids_in_master)):
             race_id = existing_race_ids_in_master[id_idx][0]
-            target_url = self._make_target_url_about_race_result(race_id)
+            target_url = self._make_target_url_about_past_5_race_result(race_id)
 
             html = requests.get(target_url)
             html.encoding = 'EUC-JP'
             soup = BeautifulSoup(html.text, 'html.parser')
 
             if not soup.find_all('table', attrs={'class', 'race_table_01 nk_tb_common shutuba_table'}):
-                print('Target URL to requests ', target_url, 'does not exist.')
+                print('Target URL to requests ', target_url, 'does not exist')
                 break
 
             print('Target URL to requests: ', target_url)
