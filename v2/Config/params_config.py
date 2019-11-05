@@ -7,12 +7,12 @@ parameters = {
         'RACE_PAST5_RESULT': 'https://race.netkeiba.com/?pid=race&id=c{RACE_ID}&mode=shutuba'
     },
 
-    # parameters about model training
+    # parameters about columns name of tables
     'TABLE_COL_NAMES': {
         'race_master': [
             'race_id',
             'race_title',
-            'race_coure',
+            'race_course',
             'race_weather',
             'race_condition',
             'race_year',
@@ -23,6 +23,9 @@ parameters = {
             'race_info_1',
             'race_info_2',
             'race_info_3'
+        ],
+        'race_master_not_existing': [
+            'race_id'
         ],
         'race_table_info': [
             'race_id',
@@ -54,7 +57,7 @@ parameters = {
             'race_id',
             'refund_type',
             'groupby_index',
-            'bracket_num',
+            'horse_num',
             'refund_yen',
             'popularity_order'
         ],

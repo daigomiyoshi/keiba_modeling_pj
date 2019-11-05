@@ -53,12 +53,16 @@ class RaceInfoScraper(object):
         return race_id, target_url
 
     def _is_the_race_id_existing_in_master(self, race_id):
-        query = """
-            SELECT race_id 
-            FROM race_master
-            WHERE race_id = "{RACE_ID}";
+        query_existing = """
+            SELECT race_id FROM race_master WHERE race_id = '{RACE_ID}';
         """.format(RACE_ID=race_id)
-        race_id_list_in_master = self._fetchall_and_make_list_by(query)
+        race_id_list_in_master_existing = self._fetchall_and_make_list_by(query_existing)
+        query_not_existing = """
+            SELECT race_id FROM race_master_not_existing WHERE race_id = '{RACE_ID}';
+        """.format(RACE_ID=race_id)
+        race_id_list_in_master_not_existing = self._fetchall_and_make_list_by(query_not_existing)
+        race_id_list_in_master = race_id_list_in_master_existing + race_id_list_in_master_not_existing
+
         if len(race_id_list_in_master) > 0:
             return True
         else:
@@ -89,7 +93,7 @@ class RaceInfoScraper(object):
         race_info_2 = soup.find('div', class_='data_intro').find('div', class_='race_otherdata').find_all('p')[2].text.replace(u'\xa0', u' ')
         race_info_3 = soup.find('div', class_='data_intro').find('div', class_='race_otherdata').find_all('p')[3].text.replace(u'\xa0', u' ')
 
-        return race_id, race_title, race_course, race_weather, race_condition, race_year, race_month, race_date, race_dow, starting_time, race_info_1, race_info_2, race_info_3
+        return [race_id, race_title, race_course, race_weather, race_condition, race_year, race_month, race_date, race_dow, starting_time, race_info_1, race_info_2, race_info_3]
 
     @staticmethod
     def _extract_race_table(soup, race_id):
@@ -149,13 +153,11 @@ class RaceInfoScraper(object):
         return this_race_table_info
 
     def get_race_master_and_table_info(self):
-        for event_year in range(2008, 2020):
+        for event_year in range(2019, 2020):
             for event_place in range(1, 11):
                 for event_month in range(1, 11):
                     for event_time in range(1, 11):
                         for event_race in range(1, 13):
-                            race_master_list = []
-                            race_table_info_list = []
 
                             race_id, target_url = self._make_race_id_and_target_url(
                                 event_year, event_place, event_month, event_time, event_race
@@ -171,12 +173,16 @@ class RaceInfoScraper(object):
 
                             if not soup.find_all('table', attrs={'class', 'race_table_old nk_tb_common'}):
                                 print('Target URL to requests ', target_url, 'does not exist')
+                                self._bulk_insert([[race_id]], 'race_master_not_existing',
+                                                  self.parameters['TABLE_COL_NAMES']['race_master_not_existing'])
                                 continue
 
                             print('Target URL to requests: ', target_url)
                             try:
-                                race_master_list.append(self._extract_common_info(soup, race_id))
-                                race_table_info_list = race_table_info_list + self._extract_race_table(soup, race_id)
+                                race_master_list = self._extract_common_info(soup, race_id)
+                                race_table_info_list = self._extract_race_table(soup, race_id)
+                                if ' ' in race_master_list:
+                                    continue
                                 self._bulk_insert(race_master_list, 'race_master',
                                                   self.parameters['TABLE_COL_NAMES']['race_master'])
                                 self._bulk_insert(race_table_info_list, 'race_table_info',
@@ -459,7 +465,7 @@ class RaceInfoScraper(object):
 
             if not soup.find_all('table', attrs={'class', 'race_table_01 nk_tb_common shutuba_table'}):
                 print('Target URL to requests ', target_url, 'does not exist')
-                break
+                continue
 
             print('Target URL to requests: ', target_url)
             race_past5_result_info_list = self._extract_past_5_race_result(soup, race_id)

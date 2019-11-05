@@ -15,5 +15,7 @@ CREATE TABLE `race_table_info` (
   `horse_weight_increment` varchar(5) DEFAULT NULL,
   `win_odds` varchar(10) DEFAULT NULL,
   `popularity_order` varchar(5) DEFAULT NULL,
-  PRIMARY KEY (`race_id`,`horse_num`)
+  PRIMARY KEY (`race_id`,`horse_num`),
+  KEY `race_id` (`race_id`),
+  KEY `horse_num` (`horse_num`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

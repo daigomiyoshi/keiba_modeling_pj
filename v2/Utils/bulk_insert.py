@@ -20,5 +20,8 @@ class BulkInsert(object):
     @staticmethod
     def _generate_query(col_names, insert_data, target_table):
         schema = '(' + ', '.join(map(lambda x: str(x), col_names)) + ')'
-        data_text = ', '.join(map(lambda x: str(tuple(x)), insert_data))
+        if len(insert_data) == 1:
+            data_text = ', '.join(map(lambda x: str(tuple(x)), insert_data)).replace(',', '')
+        else:
+            data_text = ', '.join(map(lambda x: str(tuple(x)), insert_data))
         return 'INSERT INTO ' + target_table + schema + ' VALUES ' + data_text
