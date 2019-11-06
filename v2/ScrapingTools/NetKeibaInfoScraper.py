@@ -154,7 +154,7 @@ class RaceInfoScraper(object):
             race_id, target_url = self._make_race_id_and_target_url(race_calender)
 
             if self._is_the_race_id_existing_in_master(race_id):
-                print('Info about', target_url, 'is already existing in master')
+                # print('Info about', target_url, 'is already existing in master')
                 continue
 
             html = requests.get(target_url)
@@ -428,7 +428,7 @@ class RaceInfoScraper(object):
             horse_num = table_element[row].find_all('td')[1].text
 
             post_x = 0
-            for col in range(1, 11):
+            for col in range(1, 15):
                 try:
                     race_name_element = table_element[row].find_all('td')[col].find('span', class_='race_name')
                     past_x_race_title = race_name_element.text
@@ -459,6 +459,9 @@ class RaceInfoScraper(object):
 
             print('Target URL to requests: ', target_url)
             race_past5_result_info_list = self._extract_past_5_race_result(soup, race_id)
+            if len(race_past5_result_info_list) == 0:
+                print('\t This race has no past 5 race result info')
+                continue
             self._bulk_insert(race_past5_result_info_list, 'race_past_5_result_info',
                               self.parameters['TABLE_COL_NAMES']['race_past_5_result_info'])
 
