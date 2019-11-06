@@ -45,25 +45,21 @@ class RaceInfoScraper(object):
         num_str = str(num) if num >= 10 else '0' + str(num)
         return num_str
 
-    def _make_race_id_and_target_url(self, event_year, event_place, event_month, event_time, event_race):
-        race_id = str(event_year) + self._get_num_str(event_place) + self._get_num_str(event_month) + self._get_num_str(
-            event_time) + self._get_num_str(event_race)
-        target_url = self.parameters['URL_ABOUT_NETKEIBA']['RACE_TABLE'] + race_id
+    def _make_race_ids_list(self):
+        query = 'SELECT * FROM race_calender_master;'
+        return self._fetchall_and_make_list_by(query)
 
+    def _make_race_id_and_target_url(self, race_calender):
+        race_id = ''.join(map(lambda x: self._get_num_str(x), race_calender))
+        target_url = self.parameters['URL_ABOUT_NETKEIBA']['RACE_TABLE'] + race_id
         return race_id, target_url
 
     def _is_the_race_id_existing_in_master(self, race_id):
-        query_existing = """
+        query = """
             SELECT race_id FROM race_master WHERE race_id = '{RACE_ID}';
         """.format(RACE_ID=race_id)
-        race_id_list_in_master_existing = self._fetchall_and_make_list_by(query_existing)
-        query_not_existing = """
-            SELECT race_id FROM race_master_not_existing WHERE race_id = '{RACE_ID}';
-        """.format(RACE_ID=race_id)
-        race_id_list_in_master_not_existing = self._fetchall_and_make_list_by(query_not_existing)
-        race_id_list_in_master = race_id_list_in_master_existing + race_id_list_in_master_not_existing
-
-        if len(race_id_list_in_master) > 0:
+        race_id_list_in_master_existing = self._fetchall_and_make_list_by(query)
+        if len(race_id_list_in_master_existing) > 0:
             return True
         else:
             return False
@@ -153,52 +149,44 @@ class RaceInfoScraper(object):
         return this_race_table_info
 
     def get_race_master_and_table_info(self):
-        for event_year in range(2019, 2020):
-            for event_place in range(1, 11):
-                for event_month in range(1, 11):
-                    for event_time in range(1, 11):
-                        for event_race in range(1, 13):
+        race_calender_master_list = self._make_race_ids_list()
+        for race_calender in race_calender_master_list:
+            race_id, target_url = self._make_race_id_and_target_url(race_calender)
 
-                            race_id, target_url = self._make_race_id_and_target_url(
-                                event_year, event_place, event_month, event_time, event_race
-                            )
+            if self._is_the_race_id_existing_in_master(race_id):
+                print('Info about', target_url, 'is already existing in master')
+                continue
 
-                            if self._is_the_race_id_existing_in_master(race_id):
-                                print('Info about', target_url, 'is already existing in master')
-                                continue
+            html = requests.get(target_url)
+            html.encoding = 'EUC-JP'
+            soup = BeautifulSoup(html.text, 'html.parser')
 
-                            html = requests.get(target_url)
-                            html.encoding = 'EUC-JP'
-                            soup = BeautifulSoup(html.text, 'html.parser')
+            if not soup.find_all('table', attrs={'class', 'race_table_old nk_tb_common'}):
+                print('Target URL to requests ', target_url, 'does not exist')
+                continue
 
-                            if not soup.find_all('table', attrs={'class', 'race_table_old nk_tb_common'}):
-                                print('Target URL to requests ', target_url, 'does not exist')
-                                self._bulk_insert([[race_id]], 'race_master_not_existing',
-                                                  self.parameters['TABLE_COL_NAMES']['race_master_not_existing'])
-                                continue
+            print('Target URL to requests: ', target_url)
+            try:
+                race_master_list = self._extract_common_info(soup, race_id)
+                race_table_info_list = self._extract_race_table(soup, race_id)
+                if ' ' in race_master_list:
+                    continue
+                self._bulk_insert([race_master_list], 'race_master', self.parameters['TABLE_COL_NAMES']['race_master'])
+                self._bulk_insert(race_table_info_list, 'race_table_info', self.parameters['TABLE_COL_NAMES']['race_table_info'])
+            except (AttributeError, ValueError):
+                print('\t This URL has no common info')
 
-                            print('Target URL to requests: ', target_url)
-                            try:
-                                race_master_list = self._extract_common_info(soup, race_id)
-                                race_table_info_list = self._extract_race_table(soup, race_id)
-                                if ' ' in race_master_list:
-                                    continue
-                                self._bulk_insert(race_master_list, 'race_master',
-                                                  self.parameters['TABLE_COL_NAMES']['race_master'])
-                                self._bulk_insert(race_table_info_list, 'race_table_info',
-                                                  self.parameters['TABLE_COL_NAMES']['race_table_info'])
-                            except (AttributeError, ValueError):
-                                print('\t This URL has no common info')
-
-                            time.sleep(1)
+            time.sleep(1)
 
     # Functions for scraping race result and refund info
     def _extract_race_ids_in_master_not_exist_in_race_result(self):
         query = """
             SELECT DISTINCT race_id 
             FROM race_master
-            WHERE race_id NOT IN (SELECT DISTINCT race_id FROM race_result_info);
-        """
+            WHERE 0=0 
+            AND race_id NOT IN (SELECT DISTINCT race_id FROM race_result_info)
+            AND CAST(LEFT(race_id, 4) AS SIGNED) >= {LATEST_YEAR}
+        """.format(LATEST_YEAR=self.parameters['LATEST_YEAR'])
         return self. _fetchall_and_make_list_by(query)
 
     def _make_target_url_about_race_result(self, race_id):
@@ -420,8 +408,10 @@ class RaceInfoScraper(object):
         query = """
             SELECT DISTINCT race_id 
             FROM race_master
-            WHERE race_id NOT IN (SELECT DISTINCT race_id FROM race_past_5_result_info);
-        """
+            WHERE 0=0
+            AND race_id NOT IN (SELECT DISTINCT race_id FROM race_past_5_result_info)
+            AND CAST(LEFT(race_id, 4) AS SIGNED) >= {LATEST_YEAR}
+        """.format(LATEST_YEAR=self.parameters['LATEST_YEAR'])
         return self._fetchall_and_make_list_by(query)
 
     def _make_target_url_about_past_5_race_result(self, race_id):

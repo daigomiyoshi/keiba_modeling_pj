@@ -6,6 +6,7 @@ parameters = {
         'RACE_RESULT': 'https://race.netkeiba.com/?pid=race&id=c{RACE_ID}&mode=result',
         'RACE_PAST5_RESULT': 'https://race.netkeiba.com/?pid=race&id=c{RACE_ID}&mode=shutuba'
     },
+    'LATEST_YEAR': 2019,
 
     # parameters about columns name of tables
     'TABLE_COL_NAMES': {
@@ -23,9 +24,6 @@ parameters = {
             'race_info_1',
             'race_info_2',
             'race_info_3'
-        ],
-        'race_master_not_existing': [
-            'race_id'
         ],
         'race_table_info': [
             'race_id',
