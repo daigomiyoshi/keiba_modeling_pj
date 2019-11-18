@@ -13,8 +13,9 @@ def prepare_queries():
     return [
         # 'TRUNCATE TABLE race_master;',
         # 'TRUNCATE TABLE race_table_info;',
-        'TRUNCATE TABLE race_result_info;',
-        'TRUNCATE TABLE race_refund_info;'
+        # 'TRUNCATE TABLE race_result_info;',
+        # 'TRUNCATE TABLE race_refund_info;'
+        'TRUNCATE TABLE race_predicted_score;'
     ]
 
 

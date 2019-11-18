@@ -67,11 +67,54 @@ parameters = {
             'past_x_race_title',
             'past_x_race_id',
             'arrival_order'
+        ],
+        'race_predicted_score': [
+            'race_id',
+            'horse_num',
+            'predicted_score'
         ]
     },
 
     # col names in dataframe
     'DATAFRAME_COL_NAMES': {
-
+        'RACE_MASTER_INFO_COLS': [
+            'race_id',
+            'race_round',
+            'race_kai',
+            'race_place',
+            'race_corse_baba',
+            'race_corse_dist',
+            'race_corse_mawari',
+            'race_weather',
+            'race_condition',
+            'race_year',
+            'race_month',
+            'race_date',
+            'race_dow',
+            'starting_hour',
+            'starting_minutes'
+        ],
+        'RACE_TABLE_RESULT_INFO_COLS': [
+            'race_id',
+            'horse_num',
+            'bracket_num',
+            'href_to_horse',
+            'horse_age',
+            'horse_sex',
+            'weight_penalty',
+            'href_to_jockey',
+            'href_to_owner',
+            'popularity_order',
+            'win_odds',
+            'arrival_sec_diff_from_first',
+            'arrival_order'
+        ],
+        'RACE_PAST_X_RESULT_INFO_COLS': [
+            'race_id',
+            'horse_num',
+            'past_x',
+            'past_x_arrival_order',
+            'arrival_sec_diff_from_first'
+        ]
     }
 }
