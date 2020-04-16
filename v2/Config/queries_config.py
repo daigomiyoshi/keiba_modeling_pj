@@ -73,17 +73,26 @@ queries = {
         '''
         SELECT 
               C.race_id
-            , C.race_title
             , C.race_year
             , C.race_month
             , C.race_date
             , C.race_dow
             , C.starting_time
+            , SUBSTRING(C.race_info_1, 3, 2) AS race_place
+            , CAST(SUBSTRING(C.race_id, 11, 12) AS SIGNED) AS race_round
+            , CAST(SUBSTRING(C.race_info_1, 1, 1) AS SIGNED) AS race_kai
+            , C.race_title
             , A.horse_num
+            , CASE WHEN B.popularity_order IS NULL THEN '4着以降' 
+                   WHEN B.refund_type = '枠連' THEN '4着以降' 
+                   ELSE B.popularity_order END AS popularity_order
             , A.predicted_score
-            , CASE WHEN B.refund_type IS NULL THEN '4着以降' ELSE B.refund_type END AS refund_type
-            , CASE WHEN B.refund_yen IS NULL THEN '4着以降' ELSE B.refund_yen END AS refund_yen
-            , CASE WHEN B.popularity_order IS NULL THEN '4着以降' ELSE B.popularity_order END AS popularity_order
+            , CASE WHEN B.refund_type IS NULL THEN '4着以降' 
+                   WHEN B.refund_type = '枠連' THEN '4着以降' 
+                   ELSE B.refund_type END AS refund_type
+            , CASE WHEN B.refund_yen IS NULL THEN '4着以降' 
+                   WHEN B.refund_type = '枠連' THEN '4着以降' 
+                   ELSE B.refund_yen END AS refund_yen
         FROM race_predicted_score AS A
         LEFT JOIN race_refund_info AS B
         ON A.race_id = B.race_id

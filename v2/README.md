@@ -9,4 +9,4 @@
 #### 1.1 Get keibalab past race results and future race info
 We assume the following code is run on every Friday
 
-- ```python3 scraping_keibalab_web_info.py```
+- ```python3 01_scraping_netkeiba_info.py```
