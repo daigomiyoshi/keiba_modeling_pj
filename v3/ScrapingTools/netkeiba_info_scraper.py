@@ -4,6 +4,7 @@ import datetime
 import pymysql
 import re
 import time
+import locale
 import urllib3
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, InvalidSessionIdException
 
@@ -55,7 +56,16 @@ class RaceInfoScraper(object):
         return num_str
 
     def _make_race_ids_list(self):
-        query = 'SELECT * FROM race_calender_master;'
+        query = """
+            SELECT race_year, race_place_id, race_kai, race_nichi, race_round
+            FROM race_calender_master
+            WHERE 0=0
+            AND race_year>={MIN_YEAR} AND race_year<={MAX_YEAR}
+            AND race_month>={MIN_MONTH} AND race_month<={MAX_MONTH}
+            AND race_date>={MIN_DATE} AND race_date<={MAX_DATE};
+        """.format(MIN_YEAR=self.parameters['MIN_YEAR'], MAX_YEAR=self.parameters['MAX_YEAR'], 
+                   MIN_MONTH=self.parameters['MIN_MONTH'], MAX_MONTH=self.parameters['MAX_MONTH'],
+                   MIN_DATE=self.parameters['MIN_DATE'], MAX_DATE=self.parameters['MAX_DATE'])
         return self._fetchall_and_make_list_by(query)
 
     def _make_race_id_and_target_url(self, race_calender):
@@ -82,7 +92,7 @@ class RaceInfoScraper(object):
             return False
 
     def _get_race_date(self, race_id):
-        race_date_info = driver.find_elements_by_id('RaceList_DateList')[0].find_elements_by_class_name('Active')[0].text
+        race_date_info = self.driver.find_elements_by_id('RaceList_DateList')[0].find_elements_by_class_name('Active')[0].text
         race_year = race_id[:4]
         try:
             race_month = re.split('月|日|\(|\)', race_date_info)[0]
@@ -91,8 +101,8 @@ class RaceInfoScraper(object):
             race_month = re.split('/', race_date_info)[0]
             race_date = re.split('/', race_date_info)[1]
         race_date_str = race_year + '-' +race_month + '-' + race_date
+        locale.setlocale(locale.LC_TIME, 'ja_JP.UTF-8')
         race_dow = datetime.datetime.strptime(race_date_str, '%Y-%m-%d').strftime('%A')[0]
-        
         return race_year, race_month, race_date, race_dow
 
     def _extract_race_master_info(self, race_id):
@@ -105,7 +115,7 @@ class RaceInfoScraper(object):
         race_coure = race_data_01.split('/')[1]
         race_weather = re.search('天候:(.*)', race_data_01.split('/')[2]).group(1)
         race_condition = re.search('馬場:(.*)', race_data_01.split('/')[3]).group(1)
-        race_year, race_month, race_date, race_dow = _get_race_date(race_id)        
+        race_year, race_month, race_date, race_dow = self._get_race_date(race_id)
         race_other_info = re.sub(r"\s+", " ", race_master_info_elem.find_elements_by_class_name('RaceData02')[0].text.replace(u'\n',u' '))
 
         return ([
@@ -184,7 +194,6 @@ class RaceInfoScraper(object):
     def get_race_master_and_table_info(self):
         race_calender_master_list = self._make_race_ids_list()
         for race_calender in race_calender_master_list:
-            race_calender = (2020, 5, 2, 1, 1)
             race_id, target_url = self._make_race_id_and_target_url(race_calender)
 
             if self._is_the_race_id_existing_in_master(race_id):
@@ -207,10 +216,13 @@ class RaceInfoScraper(object):
             SELECT DISTINCT race_id 
             FROM race_master
             WHERE 0=0 
-            AND race_id NOT IN (SELECT DISTINCT race_id FROM race_result_info)
-            AND race_year >= {LATEST_YEAR}
-            AND race_month >= {LATEST_MONTH}
-        """.format(LATEST_YEAR=self.parameters['LATEST_YEAR'], LATEST_MONTH=self.parameters['LATEST_MONTH'])
+            AND (race_id NOT IN (SELECT DISTINCT race_id FROM race_result_info) OR race_id NOT IN (SELECT DISTINCT race_id FROM race_refund_info))
+            AND race_year>={MIN_YEAR} AND race_year<={MAX_YEAR}
+            AND race_month>={MIN_MONTH} AND race_month<={MAX_MONTH}
+            AND race_date>={MIN_DATE} AND race_date<={MAX_DATE};
+        """.format(MIN_YEAR=self.parameters['MIN_YEAR'], MAX_YEAR=self.parameters['MAX_YEAR'], 
+                   MIN_MONTH=self.parameters['MIN_MONTH'], MAX_MONTH=self.parameters['MAX_MONTH'],
+                   MIN_DATE=self.parameters['MIN_DATE'], MAX_DATE=self.parameters['MAX_DATE'])
         return self. _fetchall_and_make_list_by(query)
 
     def _make_target_url_about_race_result(self, race_id):
@@ -252,8 +264,8 @@ class RaceInfoScraper(object):
             refund_type,  
             i+1,
             result_list[i],
-            payout_list[i],
-            ninki_list[i]
+            payout_list[i].replace(',', ''),
+            ninki_list[i].replace(',', '')
     ]
 
     @staticmethod
@@ -263,8 +275,8 @@ class RaceInfoScraper(object):
                 refund_type,  
                 int((i+2)/2),
                 result_list[i],
-                payout_list[int(i/2)],
-                ninki_list[int(i/2)]
+                payout_list[int(i/2)].replace(',', ''),
+                ninki_list[int(i/2)].replace(',', '')
         ]
 
     @staticmethod
@@ -274,14 +286,14 @@ class RaceInfoScraper(object):
                 refund_type,  
                 1,
                 result_list[i],
-                payout_list[0],
-                ninki_list[0]
+                payout_list[0].replace(',', ''),
+                ninki_list[0].replace(',', '')
             ]
     
     def _get_payout_info(self, race_id, refund_table_elem, refund_type):
-        result_list = re.split('\n | ' '', refund_table_elem.find_elements_by_tag_name('td')[0].text)
-        payout_list = re.split('\n | ' '', refund_table_elem.find_elements_by_tag_name('td')[1].text.replace('円', ''))
-        ninki_list = re.split('\n | ' '', refund_table_elem.find_elements_by_tag_name('td')[2].text.replace('人気', ''))
+        result_list = re.split('\n| ' '', refund_table_elem.find_elements_by_tag_name('td')[0].text)
+        payout_list = re.split('\n| ' '', refund_table_elem.find_elements_by_tag_name('td')[1].text.replace('円', ''))
+        ninki_list = re.split('\n| ' '', refund_table_elem.find_elements_by_tag_name('td')[2].text.replace('人気', ''))
 
         payout_result_list = []
         for i in range(len(result_list)):
@@ -300,8 +312,7 @@ class RaceInfoScraper(object):
         for idx in range(len(refund_table_list)):
             refund_table_elem = refund_table_list[idx]
             refund_type = refund_table_elem.find_element_by_tag_name('th').text
-            
-            empty_refund_list.append(self._get_payout_info(race_id, refund_table_elem, refund_type))
+            empty_refund_list += self._get_payout_info(race_id, refund_table_elem, refund_type)
 
         return empty_refund_list
 
@@ -319,8 +330,8 @@ class RaceInfoScraper(object):
 
             race_result_info_list = self._extract_race_result_info(race_id)
             race_refund_info_list = self._extract_race_refund_info(race_id)
-            self._bulk_insert(race_result_info_list, 'race_result_info', parameters['TABLE_COL_NAMES']['race_result_info'])
-            self._bulk_insert(race_refund_info_list, 'race_refund_info', parameters['TABLE_COL_NAMES']['race_refund_info'])                        
+            self._bulk_insert(race_result_info_list, 'race_result_info', self.parameters['TABLE_COL_NAMES']['race_result_info'])
+            self._bulk_insert(race_refund_info_list, 'race_refund_info', self.parameters['TABLE_COL_NAMES']['race_refund_info'])                        
 
     # Functions for scraping race past 5 result
     def _extract_race_ids_in_master_not_exist_in_race_past_5_result(self):
@@ -329,9 +340,12 @@ class RaceInfoScraper(object):
             FROM race_master
             WHERE 0=0
             AND race_id NOT IN (SELECT DISTINCT race_id FROM race_past_5_result_info)
-            AND race_year >= {LATEST_YEAR}
-            AND race_month >= {LATEST_MONTH}
-        """.format(LATEST_YEAR=self.parameters['LATEST_YEAR'], LATEST_MONTH=self.parameters['LATEST_MONTH'])
+            AND race_year>={MIN_YEAR} AND race_year<={MAX_YEAR}
+            AND race_month>={MIN_MONTH} AND race_month<={MAX_MONTH}
+            AND race_date>={MIN_DATE} AND race_date<={MAX_DATE};
+        """.format(MIN_YEAR=self.parameters['MIN_YEAR'], MAX_YEAR=self.parameters['MAX_YEAR'], 
+                   MIN_MONTH=self.parameters['MIN_MONTH'], MAX_MONTH=self.parameters['MAX_MONTH'],
+                   MIN_DATE=self.parameters['MIN_DATE'], MAX_DATE=self.parameters['MAX_DATE'])
         return self._fetchall_and_make_list_by(query)
 
     def _make_target_url_about_past_5_race_result(self, race_id):
@@ -379,4 +393,4 @@ class RaceInfoScraper(object):
                 print('\tThis race has no past 5 race result info')
                 continue
 
-            self._bulk_insert(race_past5_result_info_list, 'race_past_5_result_info', parameters['TABLE_COL_NAMES']['race_past_5_result_info'])
+            self._bulk_insert(race_past5_result_info_list, 'race_past_5_result_info', self.parameters['TABLE_COL_NAMES']['race_past_5_result_info'])
