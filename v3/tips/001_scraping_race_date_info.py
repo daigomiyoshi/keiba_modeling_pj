@@ -39,7 +39,7 @@ def _load_target_url_page(target_url, driver):
         driver.get(target_url)
         print('We could load the URL:', driver.current_url)
     except (TimeoutException, InvalidSessionIdException) as e:
-        print('We could not load the URL because of: ', e)
+        print('We could not load the URL(', driver.current_url, '), because of: ', e)
         driver.refresh()
 
 
