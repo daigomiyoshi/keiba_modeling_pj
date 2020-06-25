@@ -9,22 +9,13 @@ sys.path.append(parent_dir)
 from Config.db_config import db_params
 
 
-def prepare_queries():
-    return [
-        # 'TRUNCATE TABLE race_master;',
-        # 'TRUNCATE TABLE race_table_info;',
-        # 'TRUNCATE TABLE race_result_info;',
-        # 'TRUNCATE TABLE race_refund_info;'
-        'TRUNCATE TABLE race_predicted_score;'
-    ]
-
-
-def teardown():
-    queries = prepare_queries()
-
-    for query in queries:
-        print(query)
-        execute_query(query, db_params)
+def prepare_queries(table_list):
+    truncate_query_list = []
+    for each_table in table_list:
+        truncate_query_list.append(
+            'TRUNCATE TABLE {};'.format(each_table)
+        )
+    return truncate_query_list
 
 
 def execute_query(query, db_params):
@@ -38,5 +29,9 @@ def execute_query(query, db_params):
         print(e)
 
 
-if __name__ == '__main__':
-    teardown()
+def teardown(table_list):
+    queries = prepare_queries(table_list)
+
+    for query in queries:
+        print(query)
+        execute_query(query, db_params)
