@@ -81,8 +81,58 @@ parameters = {
 
     # parameters about columns names in dataframe
     'DATAFRAME_COL_NAMES': {
-        'RACE_MASTER_INFO_COLS': [
-            'race_id', 
+        # 'RACE_MASTER_INFO_COLS': [
+        #     'race_id', 
+        #     'race_place', 
+        #     'race_kai', 
+        #     'race_nichi', 
+        #     'race_round', 
+        #     'race_year', 
+        #     'race_month', 
+        #     'race_date', 
+        #     'race_dow', 
+        #     'race_course_baba', 
+        #     'race_course_distance', 
+        #     'race_course_mawari', 
+        #     'race_weather', 
+        #     'race_condition', 
+        #     'starting_hour', 
+        #     'starting_minutes'
+        # ],
+        # 'RACE_TABLE_INFO_COLS': [
+        #     'race_id',
+        #     'horse_num',
+        #     'bracket_num',
+        #     'href_to_horse', 
+        #     'horse_age', 
+        #     'horse_sex',
+        #     'weight_penalty',
+        #     'weight_penalty_diff_from_avg',
+        #     'href_to_jockey',
+        #     'href_to_owner',
+        #     'popularity_order',
+        #     'win_odds'
+        # ],
+        # 'RACE_RESULT_INFO_COLS': [
+        #     'race_id',
+        #     'bracket_num',
+        #     'horse_num',
+        #     'arrival_sec_diff_from_first',
+        #     'arrival_order'
+        # ],
+        # 'RACE_PAST_5_RACE_INFO_COLS': [
+        #     'race_id',
+        #     'horse_num',
+        #     'count_of_latest_runs',
+        #     'avg_arrival_order',
+        #     'std_arrival_order',
+        #     'latest_arrival_order'
+        # ],
+        'DATAMART_FOR_MODEL_COLS': [
+            'race_id',
+            'horse_num',
+            'race_horse_id',
+            'bracket_num',
             'race_place', 
             'race_kai', 
             'race_nichi', 
@@ -97,12 +147,7 @@ parameters = {
             'race_weather', 
             'race_condition', 
             'starting_hour', 
-            'starting_minutes'
-        ],
-        'RACE_TABLE_INFO_COLS': [
-            'race_id',
-            'horse_num',
-            'bracket_num',
+            'starting_minutes',
             'href_to_horse', 
             'horse_age', 
             'horse_sex',
@@ -111,22 +156,61 @@ parameters = {
             'href_to_jockey',
             'href_to_owner',
             'popularity_order',
-            'win_odds'
-        ],
-        'RACE_RESULT_INFO_COLS': [
-            'race_id',
-            'bracket_num',
-            'horse_num',
-            'arrival_sec_diff_from_first',
-            'arrival_order'
-        ],
-        'RACE_PAST_5_RACE_INFO_COLS': [
-            'race_id',
-            'horse_num',
+            'win_odds',
             'count_of_latest_runs',
             'avg_arrival_order',
             'std_arrival_order',
-            'latest_arrival_order'
+            'latest_arrival_order',
+            # 以下は結果に関する情報,
+            'arrival_order', 
+            'arrival_sec_diff_from_first', 
+            'refund_yen'
+        ],
+        'RACE_REFUND_INFO_COLS': [
+            'race_id', 
+            'horse_num', 
+            'refund_type', 
+            'groupby_index', 
+            'refund_yen'
         ]
-    }
+    },
+    'TRAIN_TEST_SPLIT': {
+        'INDEX_COL': ['race_id', 'horse_num'],
+        # 'FEATURE_COLS': ['popularity_order', 'win_odds'],
+        'FEATURE_COLS': [            
+            'bracket_num',
+            'race_place', 
+            'race_kai', 
+            'race_nichi', 
+            'race_round', 
+            'race_year', 
+            'race_month', 
+            'race_date', 
+            'race_dow', 
+            'race_course_baba', 
+            'race_course_distance', 
+            'race_course_mawari', 
+            'race_weather', 
+            'race_condition', 
+            'starting_hour', 
+            'starting_minutes',
+            'href_to_horse', 
+            'horse_age', 
+            'horse_sex',
+            'weight_penalty',
+            'weight_penalty_diff_from_avg',
+            'href_to_jockey',
+            'href_to_owner',
+            'popularity_order',
+            'win_odds',
+            'count_of_latest_runs',
+            'avg_arrival_order',
+            'std_arrival_order',
+            'latest_arrival_order',
+        ],
+        # 'EXCLUDE_COL': ['race_id', 'horse_num', 'y'],
+        'TARGET_COL': 'y',
+        'CRITERIA_TO_SPLIT_DATA': {'race_year': 2019, 'race_month': 12}
+    },
+    'DIR_NAME_OF_MODEL_PICKLE': 'Model/pickled_files/20200626/'
 }
