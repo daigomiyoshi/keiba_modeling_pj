@@ -9,7 +9,7 @@ sys.path.append(parent_dir)
 from Config import params_config, db_config
 
 
-def preprocess_datamart():
+def preprocess_datamart(time_diff = 0.000, model_type='tansho', obj_type='one_or_zero'):
     parameters = params_config.parameters
     con = pymysql.connect(**db_config.db_params)
     datamart = _get_data_frame_from_db(
@@ -17,7 +17,9 @@ def preprocess_datamart():
         col_name_list=parameters['DATAFRAME_COL_NAMES']['DATAMART_FOR_MODEL_COLS'],
         con=con
     )
-    datamart = _preprocess_target_variable(df=datamart, time_diff = 0.000, model_type='tansho', obj_type='one_or_zero')
+    datamart = _preprocess_target_variable(df=datamart, time_diff=time_diff, model_type=model_type, obj_type=obj_type)
+    print('Value count of y: \n', datamart['y'].value_counts())
+    print('Value ratio of y: \n', datamart['y'].value_counts() / datamart.shape[0])
     return datamart
 
 
@@ -65,4 +67,5 @@ def _define_target_variable(row, time_diff, model_type, obj_type):
 
 def _preprocess_target_variable(df, time_diff, model_type, obj_type):
     df['y'] = df.apply(_define_target_variable, axis=1, time_diff = time_diff, model_type=model_type, obj_type=obj_type)
+    print('Model type: ', model_type, '/ Object type: ', obj_type, '\n')
     return df

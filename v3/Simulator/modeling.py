@@ -70,7 +70,7 @@ def fit_model_into_data_by(parameters, model_type, X_train, X_test, y_train, y_t
         if model_type == 'h2o_clf':
             hdf[y] = hdf[y].asfactor()
         
-        aml = H2OAutoML(max_models=5, seed=1, max_runtime_secs=432000)
+        aml = H2OAutoML(max_models=10, seed=1, max_runtime_secs=432000)
         aml.train(
             x=list(X_train.columns),
             y=parameters['TRAIN_TEST_SPLIT']['TARGET_COL'],

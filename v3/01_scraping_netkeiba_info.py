@@ -5,7 +5,6 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-
 def main():
     parameters = params_config.parameters
     db_params = db_config.db_params
